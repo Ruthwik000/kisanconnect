@@ -1,12 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Send, Mic, MicOff, Volume2, MessageCircle, Sprout, Settings, Bell, Image as ImageIcon, X } from 'lucide-react';
+import { ArrowLeft, Send, Mic, MicOff, Volume2, MessageCircle, Sprout, Settings, Bell } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LanguageSelector } from '@/components/ui/LanguageSelector';
 import { LoadingDots } from '@/components/ui/LoadingSpinner';
 import { sendChatMessage } from '@/api/mockApi';
-import { analyzePlantImageWithGemini } from '@/services/geminiService';
 import BottomNav from '@/components/navigation/BottomNav';
 
 const ChatPage = () => {
@@ -26,101 +25,16 @@ const ChatPage = () => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [selectedImage, setSelectedImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
-  const [showPasteHint, setShowPasteHint] = useState(false);
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
-  const fileInputRef = useRef(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Handle clipboard paste for images
-  useEffect(() => {
-    const handlePaste = (e) => {
-      const items = e.clipboardData?.items;
-      if (!items) return;
-
-      // Look for image in clipboard
-      for (let i = 0; i < items.length; i++) {
-        if (items[i].type.startsWith('image/')) {
-          e.preventDefault();
-          const file = items[i].getAsFile();
-          if (file) {
-            handleImageFromFile(file);
-          }
-          break;
-        }
-      }
-    };
-
-    // Add paste event listener to the document
-    document.addEventListener('paste', handlePaste);
-
-    // Cleanup
-    return () => {
-      document.removeEventListener('paste', handlePaste);
-    };
-  }, []);
-
   const handleSend = async (text) => {
     const messageText = text || input.trim();
-    
-    // Handle image upload for disease detection
-    if (selectedImage) {
-      const userMessage = {
-        id: `user_${Date.now()}`,
-        role: 'user',
-        content: messageText || 'Please analyze this cotton plant image',
-        image: imagePreview,
-        timestamp: new Date(),
-      };
-
-      setMessages((prev) => [...prev, userMessage]);
-      setInput('');
-      setIsLoading(true);
-
-      try {
-        // Use Gemini Vision to analyze the image directly
-        const result = await analyzePlantImageWithGemini(selectedImage, currentLanguage);
-
-        if (result.success) {
-          const botMessage = {
-            id: `bot_${Date.now()}`,
-            role: 'assistant',
-            content: result.fullAnalysis,
-            timestamp: new Date(),
-            diseaseData: {
-              disease: result.disease,
-              specificDisease: result.disease,
-              confidence: result.confidence,
-              isHealthy: result.isHealthy,
-              method: 'gemini_vision',
-            },
-          };
-
-          setMessages((prev) => [...prev, botMessage]);
-        }
-      } catch (error) {
-        const errorMessage = {
-          id: `error_${Date.now()}`,
-          role: 'assistant',
-          content: `❌ Error: ${error.message}\n\nPlease make sure:\n• Your Gemini API key is configured in .env\n• You have internet connection\n• The image is clear and shows a cotton plant`,
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, errorMessage]);
-      } finally {
-        setIsLoading(false);
-        setSelectedImage(null);
-        setImagePreview(null);
-      }
-      return;
-    }
-
-    // Regular text message
     if (!messageText) return;
 
     const userMessage = {
@@ -156,34 +70,6 @@ const ChatPage = () => {
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleImageFromFile = (file) => {
-    if (file && file.type.startsWith('image/')) {
-      setSelectedImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-      
-      // Show a brief hint that image was pasted
-      setShowPasteHint(true);
-      setTimeout(() => setShowPasteHint(false), 2000);
-    }
-  };
-
-  const handleImageSelect = (event) => {
-    const file = event.target.files[0];
-    handleImageFromFile(file);
-  };
-
-  const clearImage = () => {
-    setSelectedImage(null);
-    setImagePreview(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
     }
   };
 
@@ -244,37 +130,6 @@ const ChatPage = () => {
                   : 'bg-white border border-[#eeede6] text-[#2a3328]'
                   }`}
               >
-                {message.image && (
-                  <img
-                    src={message.image}
-                    alt="Uploaded plant"
-                    className="w-full rounded-2xl mb-3 max-h-64 object-cover"
-                  />
-                )}
-                
-                {/* Disease Status Badge */}
-                {message.diseaseData && (
-                  <div className="mb-4">
-                    <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm ${
-                      message.diseaseData.disease.toLowerCase().includes('fresh') || 
-                      message.diseaseData.disease.toLowerCase().includes('healthy')
-                        ? 'bg-green-100 text-green-700 border-2 border-green-300'
-                        : 'bg-red-100 text-red-700 border-2 border-red-300'
-                    }`}>
-                      <span className="text-lg">
-                        {message.diseaseData.disease.toLowerCase().includes('fresh') || 
-                         message.diseaseData.disease.toLowerCase().includes('healthy') ? '✓' : '⚠'}
-                      </span>
-                      <span className="uppercase tracking-wide">
-                        {message.diseaseData.specificDisease || message.diseaseData.disease}
-                      </span>
-                      <span className="text-xs opacity-75">
-                        ({(message.diseaseData.confidence * 100).toFixed(1)}%)
-                      </span>
-                    </div>
-                  </div>
-                )}
-                
                 <div className="text-sm sm:text-base leading-relaxed font-medium whitespace-pre-line">
                   {message.content}
                 </div>
@@ -319,33 +174,6 @@ const ChatPage = () => {
 
         {/* Input Bar - Unified and Padded */}
         <div className="p-4 sm:p-6 bg-transparent">
-          {/* Paste Hint Notification */}
-          {showPasteHint && (
-            <div className="mb-2 animate-fade-in">
-              <div className="inline-flex items-center gap-2 bg-[#768870] text-white px-4 py-2 rounded-full text-xs font-semibold shadow-lg">
-                <ImageIcon className="w-4 h-4" />
-                <span>Image pasted! ✓</span>
-              </div>
-            </div>
-          )}
-
-          {/* Image Preview */}
-          {imagePreview && (
-            <div className="mb-3 relative inline-block">
-              <img
-                src={imagePreview}
-                alt="Selected"
-                className="h-24 w-24 object-cover rounded-2xl border-2 border-[#768870]"
-              />
-              <button
-                onClick={clearImage}
-                className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-
           <div className="bg-white border border-[#eeede6] rounded-[2.5rem] p-2 flex items-center gap-2 shadow-xl shadow-black/5">
             <button
               onClick={toggleVoiceInput}
@@ -358,34 +186,18 @@ const ChatPage = () => {
             </button>
 
             <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleImageSelect}
-              className="hidden"
-            />
-
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="w-12 h-12 rounded-full flex items-center justify-center bg-[#f4f2eb] text-[#7a8478] hover:bg-[#eeede6] transition-all flex-shrink-0"
-              title="Upload plant image (or paste with Ctrl+V)"
-            >
-              <ImageIcon className="w-5 h-5" />
-            </button>
-
-            <input
               ref={inputRef}
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              placeholder={selectedImage ? 'Add a message (optional)' : t('chatbot.placeholder')}
+              placeholder={t('chatbot.placeholder')}
               className="flex-1 bg-transparent text-sm sm:text-base font-semibold focus:outline-none px-3 placeholder:text-[#7a8478]/40"
             />
 
             <button
               onClick={() => handleSend()}
-              disabled={(!input.trim() && !selectedImage) || isLoading}
+              disabled={!input.trim() || isLoading}
               className="w-12 h-12 bg-[#768870] rounded-full flex items-center justify-center text-white disabled:opacity-30 hover:opacity-90 transition-all shadow-lg shadow-[#768870]/20 active:scale-90 flex-shrink-0"
             >
               <Send className="w-5 h-5" />

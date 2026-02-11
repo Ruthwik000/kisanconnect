@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ArrowLeft,
@@ -20,7 +20,7 @@ import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LanguageSelector } from '@/components/ui/LanguageSelector';
 import { AnalyzingAnimation } from '@/components/ui/LoadingSpinner';
-import { detectDisease } from '@/api/mockApi';
+import { analyzePlantImageWithGemini } from '@/services/geminiService';
 import BottomNav from '@/components/navigation/BottomNav';
 
 const DiseasePage = () => {
@@ -29,22 +29,57 @@ const DiseasePage = () => {
   const { currentLanguage } = useLanguage();
 
   const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState(null);
+  const [showPasteHint, setShowPasteHint] = useState(false);
 
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
 
+  // Handle clipboard paste for images
+  useEffect(() => {
+    const handlePaste = (e) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.startsWith('image/')) {
+          e.preventDefault();
+          const file = items[i].getAsFile();
+          if (file) {
+            handleImageFromFile(file);
+          }
+          break;
+        }
+      }
+    };
+
+    document.addEventListener('paste', handlePaste);
+    return () => {
+      document.removeEventListener('paste', handlePaste);
+    };
+  }, []);
+
+  const handleImageFromFile = (file) => {
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setSelectedImage(e.target?.result);
+        setSelectedFile(file);
+        analyzeImage(file);
+      };
+      reader.readAsDataURL(file);
+      
+      setShowPasteHint(true);
+      setTimeout(() => setShowPasteHint(false), 2000);
+    }
+  };
+
   const handleImageSelect = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setSelectedImage(e.target?.result);
-      analyzeImage(file);
-    };
-    reader.readAsDataURL(file);
+    handleImageFromFile(file);
   };
 
   const analyzeImage = async (file) => {
@@ -52,10 +87,26 @@ const DiseasePage = () => {
     setResult(null);
 
     try {
-      const diseaseResult = await detectDisease(file);
-      setResult(diseaseResult);
-    } catch {
-      // Handle error
+      const geminiResult = await analyzePlantImageWithGemini(file, currentLanguage);
+      
+      if (geminiResult.success) {
+        setResult({
+          name: geminiResult.disease,
+          confidence: Math.round(geminiResult.confidence * 100),
+          isHealthy: geminiResult.isHealthy,
+          severity: geminiResult.isHealthy ? 'early' : 'moderate',
+          fullAnalysis: geminiResult.fullAnalysis,
+        });
+      }
+    } catch (error) {
+      console.error('Disease detection error:', error);
+      setResult({
+        name: 'Error',
+        confidence: 0,
+        isHealthy: false,
+        severity: 'severe',
+        fullAnalysis: `❌ Error: ${error.message}\n\nPlease make sure:\n• Your Gemini API key is configured in .env\n• You have internet connection\n• The image is clear and shows a cotton plant`,
+      });
     } finally {
       setIsAnalyzing(false);
     }
@@ -92,6 +143,7 @@ const DiseasePage = () => {
 
   const resetScan = () => {
     setSelectedImage(null);
+    setSelectedFile(null);
     setResult(null);
     setIsAnalyzing(false);
   };
@@ -123,6 +175,16 @@ const DiseasePage = () => {
 
       {/* 2. Main Content (Flex-1, Spaced for Full Screen Experience) */}
       <main className="flex-1 flex flex-col items-center justify-center sm:justify-center p-4 sm:p-6 min-h-0 overflow-hidden relative">
+        {/* Paste Hint Notification */}
+        {showPasteHint && (
+          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 animate-fade-in">
+            <div className="inline-flex items-center gap-2 bg-[#768870] text-white px-4 py-2 rounded-full text-xs font-semibold shadow-lg">
+              <Camera className="w-4 h-4" />
+              <span>Image pasted! ✓</span>
+            </div>
+          </div>
+        )}
+
         {!selectedImage && !isAnalyzing && !result && (
           <div className="w-full max-w-4xl h-full sm:h-auto flex flex-col items-center justify-evenly sm:justify-center sm:space-y-12">
             <div className="text-center space-y-3">
@@ -131,7 +193,7 @@ const DiseasePage = () => {
               </div>
               <div className="space-y-1">
                 <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#2a3328] tracking-tighter leading-tight">Crop Diagnostics</h1>
-                <p className="text-sm sm:text-base font-medium text-[#7a8478] opacity-80">Upload or capture a photo for instant detection</p>
+                <p className="text-sm sm:text-base font-medium text-[#7a8478] opacity-80">Upload, capture, or paste (Ctrl+V) a photo</p>
               </div>
             </div>
 
@@ -192,7 +254,7 @@ const DiseasePage = () => {
                 <div className="p-6">
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <h2 className="text-2xl sm:text-3xl font-extrabold text-[#2a3328] tracking-tighter">{result.name[currentLanguage]}</h2>
+                      <h2 className="text-2xl sm:text-3xl font-extrabold text-[#2a3328] tracking-tighter">{typeof result.name === 'string' ? result.name : result.name[currentLanguage]}</h2>
                       <p className="text-[10px] sm:text-[11px] font-black text-[#7a8478] uppercase tracking-[0.2em] mt-1">Diagnosis Result</p>
                     </div>
                     <div className="px-3 py-1.5 bg-[#f4f2eb] border border-[#eeede6] rounded-xl">
@@ -206,7 +268,7 @@ const DiseasePage = () => {
                     return (
                       <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border ${config.class} shadow-sm`}>
                         <Icon className="w-4 h-4" />
-                        <span className="text-xs font-bold uppercase tracking-widest">{config.label} Condition</span>
+                        <span className="text-xs font-bold uppercase tracking-widest">{result.isHealthy ? 'Healthy' : config.label} Condition</span>
                       </div>
                     );
                   })()}
@@ -218,17 +280,10 @@ const DiseasePage = () => {
               <div className="kisan-card p-6 sm:p-8 border-l-8 border-l-[#768870] bg-white flex-1 overflow-y-auto scrollbar-hide shadow-lg rounded-[2rem]">
                 <h3 className="font-bold text-lg mb-6 flex items-center gap-3 sticky top-0 bg-white pb-2 z-10">
                   <CheckCircle className="w-5 h-5 text-[#768870]" />
-                  Treatment Protocol
+                  {result.isHealthy ? 'Plant Health Report' : 'Treatment Protocol'}
                 </h3>
-                <div className="space-y-4">
-                  {result.cureSteps[currentLanguage].map((step, index) => (
-                    <div key={index} className="flex gap-4 items-start">
-                      <span className="flex-shrink-0 w-6 h-6 rounded-lg bg-[#f4f2eb] text-[#2a3328] text-xs flex items-center justify-center font-black border border-[#eeede6]">
-                        {index + 1}
-                      </span>
-                      <p className="text-sm sm:text-base text-[#7a8478] font-medium leading-relaxed">{step}</p>
-                    </div>
-                  ))}
+                <div className="text-sm sm:text-base text-[#7a8478] font-medium leading-relaxed whitespace-pre-line">
+                  {result.fullAnalysis}
                 </div>
               </div>
 

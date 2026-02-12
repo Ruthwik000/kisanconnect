@@ -18,6 +18,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { LanguageSelector } from '@/components/ui/LanguageSelector';
 import { AnalyzingAnimation } from '@/components/ui/LoadingSpinner';
 import { detectDisease } from '@/api/mockApi';
+import diseaseDetectionService from '@/services/diseaseDetectionService';
 import BottomNav from '@/components/navigation/BottomNav';
 
 const DiseasePage = () => {
@@ -28,6 +29,8 @@ const DiseasePage = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+  const [useMLBackend, setUseMLBackend] = useState(true);
 
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
@@ -47,12 +50,85 @@ const DiseasePage = () => {
   const analyzeImage = async (file) => {
     setIsAnalyzing(true);
     setResult(null);
+    setError(null);
 
     try {
-      const diseaseResult = await detectDisease(file);
+      let diseaseResult;
+      
+      if (useMLBackend) {
+        // Try ML backend first
+        try {
+          const mlResult = await diseaseDetectionService.predictDisease(file);
+          
+          // Transform ML result to match expected format
+          diseaseResult = {
+            name: {
+              en: mlResult.disease,
+              hi: mlResult.disease,
+              te: mlResult.disease
+            },
+            severity: mlResult.severity,
+            confidence: Math.round(mlResult.confidence * 100),
+            description: {
+              en: `Detected with ${diseaseDetectionService.formatConfidence(mlResult.confidence)} confidence.`,
+              hi: `${diseaseDetectionService.formatConfidence(mlResult.confidence)} विश्वास के साथ पता लगाया गया।`,
+              te: `${diseaseDetectionService.formatConfidence(mlResult.confidence)} విశ్వాసంతో గుర్తించబడింది।`
+            },
+            cureSteps: {
+              en: mlResult.recommendations,
+              hi: mlResult.recommendations,
+              te: mlResult.recommendations
+            },
+            prevention: {
+              en: [
+                'Regular monitoring of crops',
+                'Maintain proper field hygiene',
+                'Use disease-resistant varieties',
+                'Ensure proper drainage'
+              ],
+              hi: [
+                'फसलों की नियमित निगरानी',
+                'उचित खेत स्वच्छता बनाए रखें',
+                'रोग प्रतिरोधी किस्मों का उपयोग करें',
+                'उचित जल निकासी सुनिश्चित करें'
+              ],
+              te: [
+                'పంటల క్రమం తనిఖీ',
+                'సరైన పొలం పరిశుభ్రత నిర్వహించండి',
+                'వ్యాధి నిరోధక రకాలను ఉపయోగించండి',
+                'సరైన నీటి నిర్వహణ నిర్ధారించండి'
+              ]
+            },
+            medicines: [
+              {
+                name: 'Copper Oxychloride 50% WP',
+                price: '₹250-400',
+                amazonLink: 'https://www.amazon.in/s?k=copper+oxychloride',
+                flipkartLink: 'https://www.flipkart.com/search?q=copper+oxychloride'
+              },
+              {
+                name: 'Streptocycline',
+                price: '₹150-250',
+                amazonLink: 'https://www.amazon.in/s?k=streptocycline',
+                flipkartLink: 'https://www.flipkart.com/search?q=streptocycline'
+              }
+            ],
+            allPredictions: mlResult.all_predictions
+          };
+        } catch (mlError) {
+          console.warn('ML backend failed, falling back to mock API:', mlError);
+          setError('ML backend unavailable. Using demo mode.');
+          diseaseResult = await detectDisease(file);
+        }
+      } else {
+        // Use mock API
+        diseaseResult = await detectDisease(file);
+      }
+      
       setResult(diseaseResult);
-    } catch {
-      // Handle error
+    } catch (err) {
+      console.error('Analysis failed:', err);
+      setError(err.message || 'Failed to analyze image. Please try again.');
     } finally {
       setIsAnalyzing(false);
     }
@@ -108,6 +184,7 @@ const DiseasePage = () => {
     setSelectedImage(null);
     setResult(null);
     setIsAnalyzing(false);
+    setError(null);
   };
 
   return (
@@ -134,6 +211,18 @@ const DiseasePage = () => {
       </header>
 
       <main className="p-4 space-y-6">
+        {/* Error Message */}
+        {error && (
+          <div className="simple-card p-4 bg-destructive/10 border-destructive/20">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-destructive">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {!selectedImage && !isAnalyzing && !result && (
           <div className="space-y-4">
             {/* Upload Area */}

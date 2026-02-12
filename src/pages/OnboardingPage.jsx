@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { 
-  User, 
-  Phone, 
-  MapPin, 
-  Globe, 
-  Mic, 
-  MicOff, 
-  ArrowRight, 
-  Loader2, 
+import {
+  User,
+  Phone,
+  MapPin,
+  Globe,
+  Mic,
+  MicOff,
+  ArrowRight,
+  Loader2,
   Sprout,
-  CheckCircle
+  CheckCircle,
+  ChevronLeft
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -25,9 +26,9 @@ const OnboardingPage = () => {
 
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
-  const [isListeningName, setIsListeningName] = useState(false);
-  const [isListeningPhone, setIsListeningPhone] = useState(false);
-  
+  const [isListening, setIsListening] = useState(false);
+  const [activeVoiceField, setActiveVoiceField] = useState(null);
+
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -35,78 +36,53 @@ const OnboardingPage = () => {
     location: '',
   });
 
-  // Load existing user data
-  useEffect(() => {
-    const loadUserData = async () => {
-      if (user?.uid) {
-        const { getUserProfile } = await import('@/services/authService');
-        const profile = await getUserProfile(user.uid);
-        if (profile) {
-          setFormData(prev => ({
-            ...prev,
-            name: profile.name || '',
-            phone: profile.phone?.replace('+91', '') || '',
-            language: profile.language || currentLanguage || 'en',
-            location: profile.location || '',
-          }));
-        }
-      }
-    };
-    loadUserData();
-  }, [user, currentLanguage]);
-
   // Web Speech API for voice input
   const [recognition, setRecognition] = useState(null);
 
   useEffect(() => {
-    // Initialize speech recognition
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       const recognitionInstance = new SpeechRecognition();
       recognitionInstance.continuous = false;
       recognitionInstance.interimResults = false;
-      recognitionInstance.lang = currentLanguage === 'hi' ? 'hi-IN' : currentLanguage === 'te' ? 'te-IN' : 'en-IN';
       setRecognition(recognitionInstance);
     }
-  }, [currentLanguage]);
+  }, []);
 
   const startVoiceInput = (field) => {
     if (!recognition) {
-      toast.error(t('onboarding.voiceNotSupported') || 'Voice input not supported in this browser');
+      toast.error('Voice input not supported in this browser');
       return;
     }
 
-    if (field === 'name') {
-      setIsListeningName(true);
-    } else if (field === 'phone') {
-      setIsListeningPhone(true);
-    }
+    setIsListening(true);
+    setActiveVoiceField(field);
 
     recognition.lang = currentLanguage === 'hi' ? 'hi-IN' : currentLanguage === 'te' ? 'te-IN' : 'en-IN';
 
     recognition.onresult = (event) => {
       const transcript = event.results[0][0].transcript;
-      
       if (field === 'name') {
         setFormData(prev => ({ ...prev, name: transcript }));
-        setIsListeningName(false);
       } else if (field === 'phone') {
-        // Extract numbers from transcript
         const numbers = transcript.replace(/\D/g, '');
         setFormData(prev => ({ ...prev, phone: numbers }));
-        setIsListeningPhone(false);
+      } else if (field === 'location') {
+        setFormData(prev => ({ ...prev, location: transcript }));
       }
+      setIsListening(false);
+      setActiveVoiceField(null);
     };
 
     recognition.onerror = () => {
-      setIsListeningName(false);
-      setIsListeningPhone(false);
-      toast.error(t('onboarding.voiceError') || 'Voice input failed. Please try again.');
+      setIsListening(false);
+      setActiveVoiceField(null);
+      toast.error('Voice input failed. Please try again.');
     };
 
     recognition.onend = () => {
-      setIsListeningName(false);
-      setIsListeningPhone(false);
+      setIsListening(false);
+      setActiveVoiceField(null);
     };
 
     recognition.start();
@@ -116,351 +92,207 @@ const OnboardingPage = () => {
     if (recognition) {
       recognition.stop();
     }
-    setIsListeningName(false);
-    setIsListeningPhone(false);
+    setIsListening(false);
+    setActiveVoiceField(null);
   };
 
   const handleNext = () => {
-    if (step === 1) {
-      if (!formData.name.trim()) {
-        toast.error(t('onboarding.nameRequired') || 'Please enter your name');
-        return;
-      }
-      setStep(2);
-    } else if (step === 2) {
-      if (formData.phone.length !== 10) {
-        toast.error(t('errors.invalidPhone'));
-        return;
-      }
-      setStep(3);
-    } else if (step === 3) {
-      setStep(4);
-    }
+    if (step === 1 && !formData.name.trim()) return toast.error('Name is required');
+    if (step === 2 && formData.phone.length !== 10) return toast.error('10-digit phone is required');
+    if (step < 4) setStep(step + 1);
   };
 
-  const handleBack = () => {
-    if (step > 1) {
-      setStep(step - 1);
-    }
-  };
+  const handleBack = () => step > 1 && setStep(step - 1);
 
   const handleSubmit = async () => {
-    if (!formData.location.trim()) {
-      toast.error(t('onboarding.locationRequired') || 'Please enter your location');
-      return;
-    }
-
+    if (!formData.location.trim()) return toast.error('Location is required');
     setIsLoading(true);
     try {
-      // Update language
       changeLanguage(formData.language);
-      
-      // Update user profile in Firestore
       const result = await updateProfile({
-        name: formData.name,
+        ...formData,
         phone: `+91${formData.phone}`,
-        language: formData.language,
-        location: formData.location,
         onboardingCompleted: true,
       });
-
       if (result.success) {
-        toast.success(t('onboarding.success') || 'Profile setup complete!');
+        toast.success('Setup complete!');
         navigate('/dashboard');
-      } else {
-        toast.error(result.message || t('errors.serverError'));
       }
-    } catch (error) {
-      toast.error(t('errors.serverError'));
-    } finally {
-      setIsLoading(false);
-    }
+    } finally { setIsSaving(false); setIsLoading(false); }
   };
 
-  const progressPercentage = (step / 4) * 100;
+  const steps = [
+    { icon: User, title: "Identity", sub: "Tell us your name" },
+    { icon: Phone, title: "Contact", sub: "How can we reach you?" },
+    { icon: Globe, title: "Language", sub: "Preferred communication" },
+    { icon: MapPin, title: "Location", sub: "Your farming region" }
+  ];
 
   return (
-    <div className="min-h-screen hero-bg flex flex-col">
-      {/* Header */}
-      <header className="flex items-center justify-between p-4 safe-top">
+    <div className="no-scroll-view bg-[#fdfbf7] text-[#2a3328] font-sans">
+      <header className="app-header">
         <div className="flex items-center gap-2">
-          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Sprout className="w-5 h-5 text-primary" />
+          <div className="w-8 h-8 bg-[#768870] rounded-lg flex items-center justify-center">
+            <Sprout className="w-5 h-5 text-white" />
           </div>
-          <span className="text-lg font-bold text-primary">
-            {t('common.appName')}
-          </span>
+          <span className="font-bold text-base tracking-tight text-[#768870]">Account Setup</span>
         </div>
-        <div className="text-sm text-muted-foreground">
-          {t('onboarding.step')} {step}/4
+        <div className="text-[10px] font-black uppercase tracking-widest text-[#7a8478]/50">
+          Step {step} of 4
         </div>
       </header>
 
-      {/* Progress Bar */}
-      <div className="px-4 mb-6">
-        <div className="h-2 bg-muted rounded-full overflow-hidden">
-          <div 
-            className="h-full bg-primary transition-all duration-300"
-            style={{ width: `${progressPercentage}%` }}
-          />
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col items-center justify-center p-6">
-        <div className="w-full max-w-md">
-          {/* Step 1: Name */}
-          {step === 1 && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-right duration-300">
-              <div className="text-center mb-8">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                  <User className="w-8 h-8 text-primary" />
+      <main className="fit-content w-full flex flex-col items-center justify-center p-6 px-4">
+        <div className="w-full max-w-lg">
+          {/* Progress Indicator */}
+          <div className="flex justify-between mb-12 relative px-4">
+            <div className="absolute top-1/2 left-4 right-4 h-0.5 bg-[#eeede6] -translate-y-1/2 -z-10" />
+            <div
+              className="absolute top-1/2 left-4 h-0.5 bg-[#768870] -translate-y-1/2 -z-10 transition-all duration-500"
+              style={{ width: `${((step - 1) / 3) * 100}%` }}
+            />
+            {steps.map((s, idx) => {
+              const Icon = s.icon;
+              const isDone = idx + 1 < step;
+              const isCurrent = idx + 1 === step;
+              return (
+                <div key={idx} className="flex flex-col items-center gap-2">
+                  <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all bg-white ${isDone ? 'bg-[#768870] border-[#768870] text-white' :
+                      isCurrent ? 'border-[#768870] text-[#768870] scale-110 shadow-lg' :
+                        'border-[#eeede6] text-[#7a8478]'
+                    }`}>
+                    {isDone ? <CheckCircle className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
+                  </div>
+                  <span className={`text-[9px] font-black uppercase tracking-tighter ${isCurrent ? 'text-[#2a3328]' : 'text-[#7a8478]/40'}`}>{s.title}</span>
                 </div>
-                <h2 className="text-2xl font-bold text-foreground mb-2">
-                  {t('onboarding.nameTitle') || "What's your name?"}
-                </h2>
-                <p className="text-muted-foreground">
-                  {t('onboarding.nameSubtitle') || 'Help us personalize your experience'}
-                </p>
-              </div>
+              );
+            })}
+          </div>
 
-              <div className="simple-card p-6 space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">
-                    {t('onboarding.fullName') || 'Full Name'}
-                  </label>
+          <div className="kisan-card p-8 bg-white border-[#eeede6] shadow-xl shadow-[#768870]/5">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-extrabold text-[#2a3328] tracking-tight">{steps[step - 1].sub}</h2>
+              <p className="text-[11px] font-bold text-[#7a8478]/50 uppercase tracking-widest mt-1">Onboarding Process</p>
+            </div>
+
+            <div className="space-y-6">
+              {step === 1 && (
+                <div className="space-y-4">
                   <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7a8478]/40" />
                     <input
                       type="text"
                       value={formData.name}
-                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder={t('onboarding.namePlaceholder') || 'Enter your full name'}
-                      className="w-full pl-4 pr-12 py-3 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/30 outline-none transition-all"
+                      autoFocus
+                      onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))}
+                      placeholder="Full Name"
+                      className="w-full bg-[#fdfbf7] border border-[#eeede6] rounded-xl pl-10 pr-12 py-3 text-sm font-semibold focus:outline-[#768870]/50"
                     />
                     <button
-                      onClick={() => isListeningName ? stopVoiceInput() : startVoiceInput('name')}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-lg hover:bg-muted transition-colors"
+                      onClick={() => isListening ? stopVoiceInput() : startVoiceInput('name')}
+                      className={`absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-lg transition-colors ${activeVoiceField === 'name' ? 'bg-red-500 text-white animate-pulse' : 'text-[#7a8478]/40 hover:bg-[#f4f2eb]'}`}
                     >
-                      {isListeningName ? (
-                        <MicOff className="w-5 h-5 text-destructive animate-pulse" />
-                      ) : (
-                        <Mic className="w-5 h-5 text-muted-foreground" />
-                      )}
+                      <Mic className="w-4 h-4" />
                     </button>
                   </div>
-                  {isListeningName && (
-                    <p className="text-sm text-primary flex items-center gap-2">
-                      <span className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-                      {t('auth.listening')}
-                    </p>
-                  )}
                 </div>
+              )}
 
-                <button
-                  onClick={handleNext}
-                  disabled={!formData.name.trim()}
-                  className="btn-primary w-full py-4 text-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {t('common.next')}
-                  <ArrowRight className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Step 2: Phone Number */}
-          {step === 2 && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-right duration-300">
-              <div className="text-center mb-8">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                  <Phone className="w-8 h-8 text-primary" />
-                </div>
-                <h2 className="text-2xl font-bold text-foreground mb-2">
-                  {t('onboarding.phoneTitle') || 'Your phone number'}
-                </h2>
-                <p className="text-muted-foreground">
-                  {t('onboarding.phoneSubtitle') || 'We use this to keep your account secure'}
-                </p>
-              </div>
-
-              <div className="simple-card p-6 space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">
-                    {t('auth.phoneNumber')}
-                  </label>
+              {step === 2 && (
+                <div className="space-y-4">
                   <div className="relative">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                      <Phone className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">+91</span>
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[#7a8478]/40 border-r border-[#eeede6] pr-2 pointer-events-none">
+                      <Phone className="w-4 h-4" />
+                      <span className="text-[10px] font-bold">+91</span>
                     </div>
                     <input
                       type="tel"
                       value={formData.phone}
-                      onChange={(e) => {
-                        const value = e.target.value.replace(/\D/g, '').slice(0, 10);
-                        setFormData(prev => ({ ...prev, phone: value }));
-                      }}
-                      placeholder={t('auth.phonePlaceholder')}
-                      className="w-full pl-24 pr-12 py-3 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/30 outline-none transition-all"
+                      autoFocus
+                      onChange={(e) => setFormData(p => ({ ...p, phone: e.target.value.replace(/\D/g, '').slice(0, 10) }))}
+                      placeholder="99999 99999"
+                      className="w-full bg-[#fdfbf7] border border-[#eeede6] rounded-xl pl-16 pr-12 py-3 text-sm font-semibold focus:outline-[#768870]/50"
                     />
                     <button
-                      onClick={() => isListeningPhone ? stopVoiceInput() : startVoiceInput('phone')}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-lg hover:bg-muted transition-colors"
+                      onClick={() => isListening ? stopVoiceInput() : startVoiceInput('phone')}
+                      className={`absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-lg transition-colors ${activeVoiceField === 'phone' ? 'bg-red-500 text-white animate-pulse' : 'text-[#7a8478]/40 hover:bg-[#f4f2eb]'}`}
                     >
-                      {isListeningPhone ? (
-                        <MicOff className="w-5 h-5 text-destructive animate-pulse" />
-                      ) : (
-                        <Mic className="w-5 h-5 text-muted-foreground" />
-                      )}
+                      <Mic className="w-4 h-4" />
                     </button>
                   </div>
-                  {isListeningPhone && (
-                    <p className="text-sm text-primary flex items-center gap-2">
-                      <span className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-                      {t('auth.listening')}
-                    </p>
-                  )}
                 </div>
+              )}
 
-                <div className="flex gap-3">
-                  <button
-                    onClick={handleBack}
-                    className="flex-1 py-4 rounded-lg border-2 border-border bg-background hover:bg-muted transition-colors text-lg font-semibold"
-                  >
-                    {t('common.back')}
-                  </button>
-                  <button
-                    onClick={handleNext}
-                    disabled={formData.phone.length !== 10}
-                    className="flex-1 btn-primary py-4 text-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    {t('common.next')}
-                    <ArrowRight className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Step 3: Language */}
-          {step === 3 && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-right duration-300">
-              <div className="text-center mb-8">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                  <Globe className="w-8 h-8 text-primary" />
-                </div>
-                <h2 className="text-2xl font-bold text-foreground mb-2">
-                  {t('onboarding.languageTitle') || 'Choose your language'}
-                </h2>
-                <p className="text-muted-foreground">
-                  {t('onboarding.languageSubtitle') || 'Select your preferred language'}
-                </p>
-              </div>
-
-              <div className="simple-card p-6 space-y-4">
-                <div className="space-y-3">
-                  {languages.map((lang) => (
+              {step === 3 && (
+                <div className="grid grid-cols-1 gap-3">
+                  {languages.map(lang => (
                     <button
                       key={lang.code}
-                      onClick={() => setFormData(prev => ({ ...prev, language: lang.code }))}
-                      className={`w-full p-4 rounded-lg border-2 transition-all flex items-center justify-between ${
-                        formData.language === lang.code
-                          ? 'border-primary bg-primary/5'
-                          : 'border-border hover:border-primary/50'
-                      }`}
+                      onClick={() => setFormData(p => ({ ...p, language: lang.code }))}
+                      className={`p-4 rounded-xl border-2 transition-all flex items-center justify-between ${formData.language === lang.code ? 'border-[#768870] bg-[#768870]/5 shadow-sm' : 'border-[#eeede6] hover:bg-[#f4f2eb]'}`}
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 text-left">
                         <span className="text-2xl">{lang.flag}</span>
-                        <div className="text-left">
-                          <div className="font-semibold text-foreground">{lang.nativeName}</div>
-                          <div className="text-sm text-muted-foreground">{lang.name}</div>
+                        <div>
+                          <div className="text-sm font-black text-[#2a3328]">{lang.nativeName}</div>
+                          <div className="text-[10px] font-bold text-[#7a8478]/60 uppercase tracking-widest">{lang.name}</div>
                         </div>
                       </div>
-                      {formData.language === lang.code && (
-                        <CheckCircle className="w-6 h-6 text-primary" />
-                      )}
+                      {formData.language === lang.code && <CheckCircle className="w-5 h-5 text-[#768870]" />}
                     </button>
                   ))}
                 </div>
+              )}
 
-                <div className="flex gap-3 pt-4">
+              {step === 4 && (
+                <div className="space-y-4">
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7a8478]/40" />
+                    <input
+                      type="text"
+                      value={formData.location}
+                      autoFocus
+                      onChange={(e) => setFormData(p => ({ ...p, location: e.target.value }))}
+                      placeholder="e.g. Warangal, Telangana"
+                      className="w-full bg-[#fdfbf7] border border-[#eeede6] rounded-xl pl-10 pr-12 py-3 text-sm font-semibold focus:outline-[#768870]/50"
+                    />
+                    <button
+                      onClick={() => isListening ? stopVoiceInput() : startVoiceInput('location')}
+                      className={`absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-lg transition-colors ${activeVoiceField === 'location' ? 'bg-red-500 text-white animate-pulse' : 'text-[#7a8478]/40 hover:bg-[#f4f2eb]'}`}
+                    >
+                      <Mic className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-4 pt-6">
+                {step > 1 && (
                   <button
                     onClick={handleBack}
-                    className="flex-1 py-4 rounded-lg border-2 border-border bg-background hover:bg-muted transition-colors text-lg font-semibold"
+                    className="flex-1 p-4 rounded-xl border-2 border-[#eeede6] bg-white text-[#7a8478] font-black text-xs uppercase tracking-widest hover:bg-[#f4f2eb] transition-all flex items-center justify-center gap-2"
                   >
-                    {t('common.back')}
+                    <ChevronLeft className="w-4 h-4" />
+                    Back
                   </button>
-                  <button
-                    onClick={handleNext}
-                    className="flex-1 btn-primary py-4 text-lg flex items-center justify-center gap-2"
-                  >
-                    {t('common.next')}
-                    <ArrowRight className="w-5 h-5" />
-                  </button>
-                </div>
+                )}
+                <button
+                  onClick={step === 4 ? handleSubmit : handleNext}
+                  disabled={isLoading}
+                  className="flex-[2] kisan-btn-primary p-4 rounded-xl text-xs shadow-lg shadow-[#768870]/20 active:scale-95 uppercase tracking-[0.2em]"
+                >
+                  {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
+                    <span className="flex items-center gap-2">
+                      {step === 4 ? 'Complete Setup' : 'Continue'}
+                      <ArrowRight className="w-4 h-4" />
+                    </span>
+                  )}
+                </button>
               </div>
             </div>
-          )}
-
-          {/* Step 4: Location */}
-          {step === 4 && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-right duration-300">
-              <div className="text-center mb-8">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                  <MapPin className="w-8 h-8 text-primary" />
-                </div>
-                <h2 className="text-2xl font-bold text-foreground mb-2">
-                  {t('onboarding.locationTitle') || 'Where are you farming?'}
-                </h2>
-                <p className="text-muted-foreground">
-                  {t('onboarding.locationSubtitle') || 'Help us provide location-specific advice'}
-                </p>
-              </div>
-
-              <div className="simple-card p-6 space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">
-                    {t('onboarding.location') || 'Location'}
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.location}
-                    onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                    placeholder={t('onboarding.locationPlaceholder') || 'e.g., Warangal, Telangana'}
-                    className="w-full px-4 py-3 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/30 outline-none transition-all"
-                  />
-                </div>
-
-                <div className="flex gap-3 pt-4">
-                  <button
-                    onClick={handleBack}
-                    className="flex-1 py-4 rounded-lg border-2 border-border bg-background hover:bg-muted transition-colors text-lg font-semibold"
-                  >
-                    {t('common.back')}
-                  </button>
-                  <button
-                    onClick={handleSubmit}
-                    disabled={isLoading || !formData.location.trim()}
-                    className="flex-1 btn-primary py-4 text-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    {isLoading ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                      <>
-                        {t('onboarding.complete') || 'Complete Setup'}
-                        <CheckCircle className="w-5 h-5" />
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+          </div>
         </div>
       </main>
-
-      {/* Footer decoration */}
-      <div className="h-2 bg-gradient-to-r from-primary via-secondary to-accent" />
     </div>
   );
 };

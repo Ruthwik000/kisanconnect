@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Send, Mic, MicOff, Volume2, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Send, Mic, MicOff, Volume2, MessageCircle, Sprout, Settings, Bell } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LanguageSelector } from '@/components/ui/LanguageSelector';
@@ -91,97 +91,100 @@ const ChatPage = () => {
   };
 
   return (
-    <div className="min-h-screen hero-bg flex flex-col">
-      <header className="sticky top-0 z-30 bg-white border-b border-border safe-top shadow-sm">
-        <div className="flex items-center justify-between p-4">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="p-2 rounded-lg bg-muted hover:bg-muted/80 touch-target transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5 text-foreground" />
-            </button>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <MessageCircle className="w-4 h-4 text-primary" />
-              </div>
-              <h1 className="text-lg font-semibold text-foreground">
-                {t('chatbot.title')}
-              </h1>
+    <div className="h-[100dvh] w-screen flex flex-col overflow-hidden bg-[#fdfbf7] text-[#2a3328]">
+      {/* 1. Header (Fixed) */}
+      <header className="app-header px-4 flex-shrink-0">
+        <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="p-1.5 hover:bg-[#f4f2eb] rounded-full text-[#7a8478] transition-colors flex-shrink-0"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-7 h-7 bg-[#768870] rounded-lg flex items-center justify-center flex-shrink-0">
+              <Sprout className="w-4 h-4 text-white" />
             </div>
+            <span className="font-bold text-sm sm:text-base tracking-tight truncate whitespace-nowrap">AI Assistant</span>
           </div>
+        </div>
+        <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
           <LanguageSelector variant="compact" />
+          <button onClick={() => navigate('/news')} className="p-1.5 hover:bg-[#f4f2eb] rounded-full text-[#7a8478] flex-shrink-0"><Bell className="w-4 h-4" /></button>
+          <button onClick={() => navigate('/profile')} className="p-1.5 hover:bg-[#f4f2eb] rounded-full text-[#7a8478] flex-shrink-0"><Settings className="w-4 h-4" /></button>
         </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto p-4 pb-36 space-y-4 scrollbar-hide">
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
+      {/* 2. Main Chat Area (Flex-1) */}
+      <main className="flex-1 flex flex-col min-h-0 relative max-w-[1200px] mx-auto w-full">
+        {/* Messages List */}
+        <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6 scrollbar-hide">
+          {messages.map((message) => (
             <div
-              className={`max-w-[85%] ${
-                message.role === 'user'
-                  ? 'chat-bubble-user p-4'
-                  : 'chat-bubble-bot p-4'
-              }`}
+              key={message.id}
+              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}
             >
-              <p className="text-sm leading-relaxed">{message.content}</p>
-
-              {message.role === 'assistant' && (
-                <button
-                  onClick={() => speakMessage(message.content)}
-                  className="mt-2 flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
-                >
-                  <Volume2 className="w-4 h-4" />
-                  <span>Listen</span>
-                </button>
-              )}
-
-              {message.suggestions && message.suggestions.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {message.suggestions.map((suggestion, index) => (
-                    <button
-                      key={index}
-                      onClick={() => handleSuggestionClick(suggestion)}
-                      className="px-3 py-1.5 text-xs font-medium rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                    >
-                      {suggestion}
-                    </button>
-                  ))}
+              <div
+                className={`max-w-[85%] sm:max-w-[75%] rounded-[2rem] p-5 shadow-sm ${message.role === 'user'
+                  ? 'bg-[#768870] text-white shadow-[#768870]/20'
+                  : 'bg-white border border-[#eeede6] text-[#2a3328]'
+                  }`}
+              >
+                <div className="text-sm sm:text-base leading-relaxed font-medium whitespace-pre-line">
+                  {message.content}
                 </div>
-              )}
+
+                {message.role === 'assistant' && (
+                  <button
+                    onClick={() => speakMessage(message.content)}
+                    className="mt-3 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#7a8478] hover:text-[#768870] transition-colors"
+                  >
+                    <Volume2 className="w-4 h-4" />
+                    <span>Listen</span>
+                  </button>
+                )}
+
+                {message.suggestions && message.suggestions.length > 0 && message.role === 'assistant' && (
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    {message.suggestions.map((suggestion, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleSuggestionClick(suggestion)}
+                        className="px-4 py-2 text-[11px] font-bold rounded-xl bg-[#f4f2eb] text-[#768870] hover:bg-[#768870] hover:text-white transition-all border border-[#eeede6] active:scale-95"
+                      >
+                        {suggestion}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
 
-        {isLoading && (
-          <div className="flex justify-start">
-            <div className="chat-bubble-bot p-4 flex items-center gap-2">
-              <LoadingDots />
-              <span className="text-sm text-muted-foreground">{t('chatbot.thinking')}</span>
+          {isLoading && (
+            <div className="flex justify-start">
+              <div className="bg-white border border-[#eeede6] rounded-[2rem] px-6 py-4 flex items-center gap-4 shadow-sm">
+                <LoadingDots />
+                <span className="text-[11px] font-black uppercase tracking-[0.2em] text-[#7a8478]">{t('chatbot.thinking')}</span>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+          <div ref={messagesEndRef} />
+        </div>
 
-        <div ref={messagesEndRef} />
-      </main>
+        {/* Input Bar - Unified and Padded */}
+        <div className="p-4 sm:p-6 bg-transparent">
+          <div className="bg-white border border-[#eeede6] rounded-[2.5rem] p-2 flex items-center gap-2 shadow-xl shadow-black/5">
+            <button
+              onClick={toggleVoiceInput}
+              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all flex-shrink-0 ${isListening
+                ? 'bg-red-500 text-white animate-pulse'
+                : 'bg-[#f4f2eb] text-[#7a8478] hover:bg-[#eeede6]'
+                }`}
+            >
+              {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+            </button>
 
-      <div className="fixed bottom-16 left-0 right-0 p-4 bg-white border-t border-border z-20">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={toggleVoiceInput}
-            className={`p-3 rounded-lg touch-target transition-colors shadow-sm ${
-              isListening
-                ? 'bg-destructive text-white'
-                : 'bg-muted text-muted-foreground hover:bg-muted/80'
-            }`}
-          >
-            {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-          </button>
-
-          <div className="flex-1 relative">
             <input
               ref={inputRef}
               type="text"
@@ -189,28 +192,24 @@ const ChatPage = () => {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
               placeholder={t('chatbot.placeholder')}
-              className="w-full px-4 py-3 rounded-lg border border-border bg-white text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/30 outline-none transition-all"
+              className="flex-1 bg-transparent text-sm sm:text-base font-semibold focus:outline-none px-3 placeholder:text-[#7a8478]/40"
             />
+
+            <button
+              onClick={() => handleSend()}
+              disabled={!input.trim() || isLoading}
+              className="w-12 h-12 bg-[#768870] rounded-full flex items-center justify-center text-white disabled:opacity-30 hover:opacity-90 transition-all shadow-lg shadow-[#768870]/20 active:scale-90 flex-shrink-0"
+            >
+              <Send className="w-5 h-5" />
+            </button>
           </div>
-
-          <button
-            onClick={() => handleSend()}
-            disabled={!input.trim() || isLoading}
-            className="btn-primary p-3 touch-target disabled:opacity-50"
-          >
-            <Send className="w-5 h-5" />
-          </button>
         </div>
+      </main>
 
-        {isListening && (
-          <p className="text-sm text-primary flex items-center gap-2 mt-2 justify-center">
-            <span className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-            {t('auth.listening')}
-          </p>
-        )}
-      </div>
-
-      <BottomNav />
+      {/* 3. Footer Navigation (Fixed) */}
+      <footer className="app-footer flex-shrink-0">
+        <BottomNav />
+      </footer>
     </div>
   );
 };

@@ -4,366 +4,189 @@ import { useNavigate } from 'react-router-dom';
 import {
   MessageCircle,
   Camera,
-  Newspaper,
   Cloud,
   Droplets,
   Wind,
-  LogOut,
   Sprout,
-  ArrowRight,
   Settings,
-  User,
+  Bell,
   MapPin,
-  RefreshCw,
+  Calendar,
+  Sun,
+  FileText
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { LanguageSelector } from '@/components/ui/LanguageSelector';
-import { getCurrentLocationWeather, getWeatherAdvice } from '@/services/weatherService';
 import BottomNav from '@/components/navigation/BottomNav';
 
 const Dashboard = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { user, logout, isAuthenticated, isLoading: authLoading } = useAuth();
-  const [weather, setWeather] = useState(null);
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [isLoadingWeather, setIsLoadingWeather] = useState(true);
-  const [weatherError, setWeatherError] = useState(null);
-
-  // TODO: Re-enable authentication later
-  // useEffect(() => {
-  //   if (!authLoading && !isAuthenticated) {
-  //     navigate('/login');
-  //   }
-  // }, [isAuthenticated, authLoading, navigate]);
+  const { user } = useAuth();
+  const [currentDate, setCurrentDate] = useState('');
 
   useEffect(() => {
-    const loadWeather = async () => {
-      setIsLoadingWeather(true);
-      setWeatherError(null);
-      try {
-        const data = await getCurrentLocationWeather();
-        setWeather(data);
-      } catch (error) {
-        console.error('Failed to load weather:', error);
-        // Error is already handled in the service with mock data
-        // So this shouldn't happen, but just in case
-        setWeatherError('Using sample weather data');
-      } finally {
-        setIsLoadingWeather(false);
-      }
-    };
-    loadWeather();
+    const now = new Date();
+    const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+    setCurrentDate(now.toLocaleDateString('en-US', options));
   }, []);
 
-  const handleRefreshWeather = async () => {
-    setIsLoadingWeather(true);
-    setWeatherError(null);
-    try {
-      const data = await getCurrentLocationWeather();
-      setWeather(data);
-    } catch (error) {
-      console.error('Failed to refresh weather:', error);
-      setWeatherError('Using sample weather data');
-    } finally {
-      setIsLoadingWeather(false);
-    }
-  };
-
-  const featureCards = [
-    {
-      id: 'chat',
-      icon: MessageCircle,
-      title: t('navigation.chat'),
-      description: 'Get instant farming advice and solutions',
-      path: '/chat',
-      cardClass: 'feature-card-green',
-      iconClass: 'icon-circle-green',
-      buttonText: 'Ask Now',
-    },
-    {
-      id: 'scan',
-      icon: Camera,
-      title: t('navigation.scan'),
-      description: 'Scan crops to identify diseases early',
-      path: '/disease',
-      cardClass: 'feature-card-brown',
-      iconClass: 'icon-circle-brown',
-      buttonText: 'Scan Now',
-    },
-    {
-      id: 'news',
-      icon: Newspaper,
-      title: t('navigation.news'),
-      description: 'Stay updated with latest farming schemes',
-      path: '/news',
-      cardClass: 'feature-card-gold',
-      iconClass: 'icon-circle-gold',
-      buttonText: 'Read More',
-    },
-  ];
-
-  const handleLogout = () => {
-    logout();
-    navigate('/auth');
-  };
-
-  // TODO: Re-enable authentication loading check later
-  // if (authLoading) {
-  //   return (
-  //     <div className="min-h-screen flex items-center justify-center hero-bg">
-  //       <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-  //     </div>
-  //   );
-  // }
-
   return (
-    <div className="min-h-screen hero-bg pb-24">
-      {/* Header with App Name */}
-      <header className="bg-white border-b border-border shadow-sm safe-top">
-        <div className="flex items-center justify-between p-4">
-          {/* App Logo/Name */}
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Sprout className="w-6 h-6 text-primary" />
+    <div className="h-[100dvh] w-screen flex flex-col overflow-hidden bg-[#fdfbf7] text-[#2a3328] font-sans">
+      {/* Header */}
+      <header className="app-header px-4 flex-shrink-0">
+        <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-7 h-7 bg-[#768870] rounded-lg flex items-center justify-center flex-shrink-0">
+              <Sprout className="w-4 h-4 text-white" />
             </div>
-            <div>
-              <h2 className="text-lg font-bold text-primary">Kisan Connect</h2>
-              <p className="text-xs text-muted-foreground">Farming Assistant</p>
-            </div>
+            <span className="font-bold text-sm sm:text-base tracking-tight truncate whitespace-nowrap">Kisan Connect</span>
           </div>
+        </div>
 
-          {/* Right Side Actions */}
-          <div className="flex items-center gap-2">
-            <LanguageSelector variant="compact" />
-            
-            {/* Settings Dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setShowDropdown(!showDropdown)}
-                className="p-2 rounded-lg bg-muted hover:bg-muted/80 touch-target transition-colors"
-              >
-                <Settings className="w-5 h-5 text-muted-foreground" />
-              </button>
-
-              {/* Dropdown Menu */}
-              {showDropdown && (
-                <>
-                  {/* Backdrop to close dropdown */}
-                  <div 
-                    className="fixed inset-0 z-40" 
-                    onClick={() => setShowDropdown(false)}
-                  />
-                  
-                  {/* Dropdown Content */}
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg border border-border shadow-lg z-50 overflow-hidden">
-                    <button
-                      onClick={() => {
-                        setShowDropdown(false);
-                        navigate('/profile');
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-muted transition-colors"
-                    >
-                      <User className="w-4 h-4" />
-                      <span>Profile</span>
-                    </button>
-                    
-                    <div className="h-px bg-border" />
-                    
-                    <button
-                      onClick={() => {
-                        setShowDropdown(false);
-                        handleLogout();
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-destructive hover:bg-destructive/10 transition-colors"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      <span>Logout</span>
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
+        <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
+          <LanguageSelector variant="compact" />
+          <button onClick={() => navigate('/news')} className="p-1.5 hover:bg-[#f4f2eb] rounded-full text-[#7a8478] transition-colors flex-shrink-0"><Bell className="w-4 h-4" /></button>
+          <button onClick={() => navigate('/profile')} className="p-1.5 hover:bg-[#f4f2eb] rounded-full text-[#7a8478] transition-colors flex-shrink-0"><Settings className="w-4 h-4" /></button>
         </div>
       </header>
 
-      <main className="px-4 space-y-4 pt-4">
-        {/* Simple Greeting at Top */}
-        <div className="flex items-center justify-between">
-          <h1 className="text-lg font-semibold text-foreground">
-            {t('dashboard.greeting')}, {user?.name?.split(' ')[0] || 'Farmer'}! 👋
-          </h1>
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col w-full max-w-[1200px] mx-auto overflow-hidden px-4 py-3 sm:px-6 gap-3">
+        {/* User Identity Row */}
+        <div className="flex items-end justify-between flex-shrink-0 h-[40px]">
+          <div>
+            <h1 className="text-xl font-bold leading-none mb-1">Good Morning, {user?.name?.split(' ')[0] || 'Shradhha'}</h1>
+            <div className="flex items-center gap-3 text-[#7a8478]">
+              <div className="flex items-center gap-1 uppercase font-bold text-[9px] tracking-widest opacity-60">
+                <Calendar className="w-3 h-3" />
+                <span>{currentDate}</span>
+              </div>
+              <div className="flex items-center gap-1 uppercase font-bold text-[9px] tracking-widest opacity-60">
+                <MapPin className="w-3 h-3" />
+                <span>Sangareddi, Telangana</span>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Enhanced Interactive Weather Card */}
-        {isLoadingWeather ? (
-          <div className="simple-card p-8 flex flex-col items-center justify-center">
-            <RefreshCw className="w-8 h-8 text-primary animate-spin mb-2" />
-            <p className="text-sm text-muted-foreground">Loading weather data...</p>
-          </div>
-        ) : weatherError ? (
-          <div className="simple-card p-6">
-            <div className="text-center">
-              <Cloud className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground mb-3">{weatherError}</p>
+        <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-4 flex-1 min-h-0 overflow-hidden pb-2">
+          {/* Left Column: Weather + AI Assistant */}
+          <div className="flex flex-col gap-4 h-full min-h-0">
+            {/* Weather Card */}
+            <div className="kisan-card p-5 flex-1 flex flex-col justify-between border-[#eeede6] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.02)] min-h-0">
+              <div className="flex justify-between items-start">
+                <h3 className="text-[10px] font-bold text-[#7a8478] uppercase tracking-widest">Local Weather</h3>
+                <Sun className="w-5 h-5 text-[#eab308]" />
+              </div>
+
+              <div className="flex flex-col items-center justify-center my-2">
+                <div className="text-4xl font-black leading-none tracking-tighter">23°C</div>
+                <p className="text-[11px] font-bold text-[#7a8478] mt-1.5 uppercase tracking-wide">Clear Sky</p>
+              </div>
+
+              <div className="space-y-2.5 border-t border-[#eeede6] pt-4">
+                {[
+                  { icon: Droplets, val: '43%', label: 'Humidity' },
+                  { icon: Wind, val: '13 km/h', label: 'Wind Speed' },
+                  { icon: Cloud, val: '20%', label: 'Cloud Cover' }
+                ].map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between text-[10px]">
+                    <div className="flex items-center gap-2 text-[#7a8478]">
+                      <item.icon className="w-3 h-3" />
+                      <span className="font-semibold">{item.label}</span>
+                    </div>
+                    <span className="font-bold text-[#2a3328]">{item.val}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* AI Assistant Banner */}
+            <div className="bg-[#768870] rounded-xl p-4 text-white flex flex-col justify-between shadow-lg shadow-[#768870]/10 border border-white/5 h-[140px] flex-shrink-0">
+              <div className="flex items-start gap-3">
+                <div className="p-1.5 bg-white/20 rounded-lg">
+                  <MessageCircle className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-[13px] font-bold leading-none mb-1.5">Kisan AI Assistant</h3>
+                  <p className="text-white/80 text-[10px] leading-tight font-medium">Ask questions about fertilizer application and soil pH management.</p>
+                </div>
+              </div>
               <button
-                onClick={handleRefreshWeather}
-                className="btn-primary px-4 py-2 text-sm flex items-center gap-2 mx-auto"
+                onClick={() => navigate('/chat')}
+                className="w-full bg-white text-[#768870] py-2 rounded-lg text-[10px] font-bold hover:bg-white/95 transition-all shadow-sm active:scale-95 mt-2"
               >
-                <RefreshCw className="w-4 h-4" />
-                Retry
+                Ask a Question
               </button>
             </div>
           </div>
-        ) : weather && (
-          <div className="simple-card overflow-hidden">
-            {/* Weather Header */}
-            <div className="bg-gradient-to-r from-primary/10 to-accent/10 px-4 py-3 border-b border-border">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Cloud className="w-5 h-5 text-primary" />
-                  <div>
-                    <h3 className="text-sm font-semibold text-foreground">Today's Weather</h3>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <MapPin className="w-3 h-3" />
-                      <span>{weather.city}</span>
-                    </div>
+
+          {/* Right Column: Features & Updates */}
+          <div className="flex flex-col gap-4 h-full min-h-0">
+            {/* Top Row: Navigation Features */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1 min-h-0">
+              <div className="kisan-card p-5 flex flex-col justify-between hover:border-[#768870]/30 transition-all border-[#eeede6] bg-white group shadow-[0_2px_8px_rgba(0,0,0,0.02)] h-full">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-[#f4f2eb] rounded-xl flex items-center justify-center group-hover:bg-[#768870]/10 transition-colors">
+                    <Camera className="w-5 h-5 text-[#768870]" />
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="font-bold text-sm">Scan Crop</h4>
+                    <p className="text-[10px] text-[#7a8478] line-clamp-2">Detect pests & diseases using AI instantly</p>
                   </div>
                 </div>
                 <button
-                  onClick={handleRefreshWeather}
-                  className="p-1.5 rounded-lg hover:bg-white/50 transition-colors"
-                  disabled={isLoadingWeather}
+                  onClick={() => navigate('/disease')}
+                  className="w-full bg-[#768870] text-white py-2.5 rounded-lg text-xs font-bold mt-4 hover:opacity-90 active:scale-[0.98] transition-all"
                 >
-                  <RefreshCw className={`w-4 h-4 text-muted-foreground ${isLoadingWeather ? 'animate-spin' : ''}`} />
+                  Open Scanner
+                </button>
+              </div>
+
+              <div className="kisan-card p-5 flex flex-col justify-between hover:border-[#768870]/30 transition-all border-[#eeede6] bg-white group shadow-[0_2px_8px_rgba(0,0,0,0.02)] h-full">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-[#f4f2eb] rounded-xl flex items-center justify-center group-hover:bg-[#768870]/10 transition-colors">
+                    <FileText className="w-5 h-5 text-[#768870]" />
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="font-bold text-sm">News & Schemes</h4>
+                    <p className="text-[10px] text-[#7a8478] line-clamp-2">Latest government agricultural programs and news</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => navigate('/news')}
+                  className="w-full bg-[#768870] text-white py-2.5 rounded-lg text-xs font-bold mt-4 hover:opacity-90 active:scale-[0.98] transition-all"
+                >
+                  View Updates
                 </button>
               </div>
             </div>
 
-            {/* Weather Stats Grid */}
-            <div className="grid grid-cols-3 divide-x divide-border">
-              {/* Temperature */}
-              <div className="p-4 text-center hover:bg-primary/5 transition-colors">
-                <div className="flex justify-center mb-2">
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Cloud className="w-6 h-6 text-primary" />
-                  </div>
+            {/* Bottom Row: Market & Govt. Schemes */}
+            <div className="kisan-card p-5 flex-1 min-h-0 border-[#eeede6] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.02)] flex flex-col justify-between h-full">
+              <h3 className="text-[10px] font-bold text-[#7a8478] uppercase tracking-widest mb-3">Market & Govt. Schemes</h3>
+              <div className="grid grid-cols-2 gap-4 flex-1">
+                <div className="bg-[#f4f2eb] p-4 rounded-xl flex flex-col justify-center gap-1.5 border border-[#eeede6]/50">
+                  <span className="font-bold text-xs text-[#2a3328]">PM-KISAN Update</span>
+                  <p className="text-[10px] text-[#7a8478] font-medium leading-tight">New installment of ₹2000 will be credited by Feb 5, 2026.</p>
                 </div>
-                <p className="text-2xl font-bold text-foreground mb-1">{weather.temperature}°C</p>
-                <p className="text-xs text-muted-foreground capitalize">
-                  {weather.description}
-                </p>
-              </div>
-
-              {/* Humidity */}
-              <div className="p-4 text-center hover:bg-accent/5 transition-colors">
-                <div className="flex justify-center mb-2">
-                  <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center">
-                    <Droplets className="w-6 h-6 text-accent" />
-                  </div>
+                <div className="bg-[#f4f2eb] p-4 rounded-xl flex flex-col justify-center gap-1.5 border border-[#eeede6]/50">
+                  <span className="font-bold text-xs text-[#2a3328]">Wheat Market Price</span>
+                  <p className="text-[10px] text-[#768870] font-bold flex items-center gap-2">
+                    ↑ ₹2,150/qtl <span className="text-[#7a8478] font-medium text-[9px]">(+2.4%)</span>
+                  </p>
                 </div>
-                <p className="text-2xl font-bold text-foreground mb-1">{weather.humidity}%</p>
-                <p className="text-xs text-muted-foreground">Humidity</p>
-              </div>
-
-              {/* Wind Speed */}
-              <div className="p-4 text-center hover:bg-secondary/5 transition-colors">
-                <div className="flex justify-center mb-2">
-                  <div className="w-12 h-12 rounded-full bg-secondary/10 flex items-center justify-center">
-                    <Wind className="w-6 h-6 text-secondary" />
-                  </div>
-                </div>
-                <p className="text-2xl font-bold text-foreground mb-1">{weather.wind}</p>
-                <p className="text-xs text-muted-foreground">km/h Wind</p>
               </div>
             </div>
-
-            {/* Weather Advice Banner */}
-            <div className="bg-gradient-to-r from-primary/5 to-accent/5 px-4 py-3 border-t border-border">
-              <div className="flex items-start gap-2">
-                <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-xs">💡</span>
-                </div>
-                <p className="text-xs text-foreground leading-relaxed">
-                  <span className="font-semibold">Farming Tip:</span> {getWeatherAdvice(weather)}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Feature Cards */}
-        <div className="space-y-4">
-          {/* AI Assistant Card - Full Width */}
-          {(() => {
-            const card = featureCards[0];
-            return (
-              <div className={`feature-card ${card.cardClass} p-5`}>
-                <div className="flex items-start gap-4">
-                  {/* Icon */}
-                  <div className={`icon-circle ${card.iconClass} flex-shrink-0`}>
-                    <card.icon className="w-6 h-6" />
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-lg font-bold text-foreground mb-1">{card.title}</h3>
-                    <p className="text-sm text-muted-foreground mb-3 leading-relaxed">
-                      {card.description}
-                    </p>
-
-                    {/* Button */}
-                    <button
-                      onClick={() => navigate(card.path)}
-                      className="btn-primary w-full flex items-center justify-center gap-2"
-                    >
-                      <span>{card.buttonText}</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
-
-          {/* Other Cards - 2 Column Grid */}
-          <div className="grid grid-cols-2 gap-3">
-            {featureCards.slice(1).map((card) => (
-              <div
-                key={card.id}
-                className={`feature-card ${card.cardClass} p-4`}
-              >
-                <div className="flex flex-col items-center text-center gap-3">
-                  {/* Icon */}
-                  <div className={`icon-circle ${card.iconClass}`}>
-                    <card.icon className="w-6 h-6" />
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1">
-                    <h3 className="text-base font-bold text-foreground mb-2">{card.title}</h3>
-                    <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
-                      {card.description}
-                    </p>
-
-                    {/* Button */}
-                    <button
-                      onClick={() => navigate(card.path)}
-                      className="btn-primary w-full flex items-center justify-center gap-2 text-sm py-2.5"
-                    >
-                      <span>{card.buttonText}</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       </main>
 
-      <BottomNav />
+      {/* Footer Nav */}
+      <footer className="app-footer flex-shrink-0">
+        <BottomNav />
+      </footer>
     </div>
   );
 };

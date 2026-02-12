@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, TrendingUp, FileText, Banknote, Calendar, ExternalLink } from 'lucide-react';
+import { ArrowLeft, TrendingUp, FileText, Banknote, Calendar, ExternalLink, Sprout, Bell, Settings, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LanguageSelector } from '@/components/ui/LanguageSelector';
@@ -53,120 +53,102 @@ const NewsPage = () => {
   };
 
   return (
-    <div className="min-h-screen hero-bg pb-24">
-      {/* Header */}
-      <header className="sticky top-0 z-30 bg-white border-b border-border safe-top shadow-sm">
-        <div className="flex items-center justify-between p-4">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="p-2 rounded-lg bg-muted hover:bg-muted/80 touch-target transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5 text-foreground" />
-            </button>
-            <h1 className="text-lg font-semibold text-foreground">{t('news.title')}</h1>
+    <div className="h-[100dvh] w-screen flex flex-col overflow-hidden bg-[#fdfbf7] text-[#2a3328]">
+      {/* Unified Header */}
+      <header className="app-header px-4 flex-shrink-0">
+        <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="p-1.5 hover:bg-[#f4f2eb] rounded-full text-[#7a8478] transition-colors flex-shrink-0"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-7 h-7 bg-[#768870] rounded-lg flex items-center justify-center flex-shrink-0">
+              <Sprout className="w-4 h-4 text-white" />
+            </div>
+            <span className="font-bold text-sm sm:text-base tracking-tight truncate whitespace-nowrap">{t('news.title')}</span>
           </div>
-          <LanguageSelector variant="compact" />
         </div>
-
-        {/* Tabs */}
-        <div className="flex px-4 pb-3 gap-2 overflow-x-auto scrollbar-hide">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg whitespace-nowrap transition-all font-medium text-sm ${
-                activeTab === tab.id
-                  ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'bg-white text-muted-foreground border border-border hover:bg-muted'
-              }`}
-            >
-              <tab.icon className="w-4 h-4" />
-              <span>{tab.label}</span>
-            </button>
-          ))}
+        <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
+          <LanguageSelector variant="compact" />
+          <button onClick={() => navigate('/news')} className="p-1.5 hover:bg-[#f4f2eb] rounded-full text-[#7a8478] flex-shrink-0"><Bell className="w-4 h-4" /></button>
+          <button onClick={() => navigate('/profile')} className="p-1.5 hover:bg-[#f4f2eb] rounded-full text-[#7a8478] flex-shrink-0"><Settings className="w-4 h-4" /></button>
         </div>
       </header>
 
-      <main className="p-4 space-y-4">
+      {/* Tabs Row (Fixed) */}
+      <div className="bg-white border-b border-[#eeede6] px-6 py-2 flex gap-4 overflow-x-auto scrollbar-hide flex-shrink-0">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex items-center gap-2 px-6 py-2 rounded-xl transition-all font-bold text-xs whitespace-nowrap ${activeTab === tab.id
+              ? 'bg-[#768870] text-white shadow-md shadow-[#768870]/20'
+              : 'bg-[#f4f2eb] text-[#7a8478] border border-[#eeede6] hover:bg-[#eeede6]'
+              }`}
+          >
+            <tab.icon className="w-4 h-4" />
+            <span>{tab.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Main Content (Flex-1) */}
+      <main className="flex-1 w-full max-w-[1200px] mx-auto overflow-y-auto scrollbar-hide p-4 space-y-4">
         {isLoading ? (
-          // Skeleton Loaders
-          <>
+          <div className="space-y-4">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="simple-card p-4 space-y-3">
-                <div className="skeleton h-40 w-full rounded-lg" />
-                <div className="skeleton h-6 w-3/4" />
-                <div className="skeleton h-4 w-full" />
-                <div className="skeleton h-4 w-2/3" />
+              <div key={i} className="kisan-card p-4 animate-pulse">
+                <div className="h-32 bg-[#f4f2eb] rounded-xl mb-4" />
+                <div className="h-4 bg-[#f4f2eb] w-3/4 rounded mb-2" />
+                <div className="h-3 bg-[#f4f2eb] w-1/2 rounded" />
               </div>
             ))}
-          </>
+          </div>
         ) : (
-          <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredNews.map((item) => (
-              <article
-                key={item.id}
-                className="simple-card overflow-hidden"
-              >
-                {/* Image */}
-                <div className="relative h-40 bg-muted">
-                  <img
-                    src={item.imageUrl}
-                    alt={item.title[currentLanguage]}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                  />
+              <article key={item.id} className="kisan-card p-0 overflow-hidden flex flex-col border-[#eeede6] bg-white shadow-sm hover:border-[#768870]/30 transition-all group">
+                <div className="h-32 bg-[#f4f2eb] relative overflow-hidden">
+                  <img src={item.imageUrl} alt="News" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   <div className="absolute top-3 left-3">
-                    <span
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold text-white ${
-                        item.category === 'scheme'
-                          ? 'bg-primary'
-                          : item.category === 'price'
-                          ? 'bg-secondary'
-                          : 'bg-accent'
-                      }`}
-                    >
-                      {item.category === 'scheme'
-                        ? t('news.schemes')
-                        : item.category === 'price'
-                        ? t('news.marketPrices')
-                        : t('news.agricultural')}
+                    <span className="px-3 py-1 bg-white/90 backdrop-blur-sm border border-[#eeede6] rounded-lg text-[9px] font-black uppercase tracking-wider text-[#768870]">
+                      {item.category}
                     </span>
                   </div>
                 </div>
-
-                {/* Content */}
-                <div className="p-5 space-y-3">
-                  <h3 className="font-bold text-lg text-foreground leading-tight">
-                    {item.title[currentLanguage]}
-                  </h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {item.summary[currentLanguage]}
-                  </p>
-                  <div className="flex items-center justify-between pt-2">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Calendar className="w-4 h-4" />
+                <div className="p-5 flex-1 flex flex-col justify-between">
+                  <div>
+                    <h3 className="font-bold text-base text-[#2a3328] leading-tight mb-2">{item.title[currentLanguage]}</h3>
+                    <p className="text-[11px] text-[#7a8478] line-clamp-2 font-medium leading-relaxed">{item.summary[currentLanguage]}</p>
+                  </div>
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-[#f4f2eb]">
+                    <div className="flex items-center gap-2 text-[9px] font-bold text-[#7a8478]/50 uppercase tracking-widest">
+                      <Calendar className="w-3.5 h-3.5" />
                       <span>{formatDate(item.date)}</span>
                     </div>
-                    <button className="flex items-center gap-1 text-sm text-primary font-semibold hover:underline">
-                      {t('news.readMore')}
-                      <ExternalLink className="w-4 h-4" />
+                    <button className="flex items-center gap-1.5 text-[11px] font-black text-[#768870] uppercase tracking-tighter hover:opacity-80">
+                      Details
+                      <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
               </article>
             ))}
+          </div>
+        )}
 
-            {filteredNews.length === 0 && (
-              <div className="simple-card p-8 text-center">
-                <p className="text-muted-foreground">No items found</p>
-              </div>
-            )}
-          </>
+        {filteredNews.length === 0 && !isLoading && (
+          <div className="kisan-card p-12 text-center max-w-md mx-auto mt-20 border-dashed">
+            <p className="text-sm font-bold text-[#7a8478]">No updates available in this category.</p>
+          </div>
         )}
       </main>
 
-      <BottomNav />
+      <footer className="app-footer flex-shrink-0">
+        <BottomNav />
+      </footer>
     </div>
   );
 };

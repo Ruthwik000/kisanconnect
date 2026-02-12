@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Mail, ArrowRight, Loader2, HelpCircle, Sprout } from 'lucide-react';
+import { Mail, ArrowRight, Loader2, HelpCircle, Sprout, Lock } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { LanguageSelector } from '@/components/ui/LanguageSelector';
 import { toast } from 'sonner';
@@ -34,8 +34,7 @@ const LoginPage = () => {
     setError('');
 
     try {
-      // Temporary: Just navigate to dashboard for now
-      // TODO: Implement actual email/password authentication
+      // Mock login for now
       toast.success('Login successful!');
       navigate('/dashboard');
     } catch (err) {
@@ -47,136 +46,82 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#F5EFE7' }}>
+    <div className="no-scroll-view bg-[#fdfbf7] text-[#2a3328] font-sans">
       {/* Header */}
-      <header className="flex items-center justify-between p-4 safe-top">
+      <header className="app-header">
         <div className="flex items-center gap-2">
-          <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#8B9556' }}>
+          <div className="w-8 h-8 bg-[#768870] rounded-lg flex items-center justify-center">
             <Sprout className="w-5 h-5 text-white" />
           </div>
-          <span className="text-lg font-bold" style={{ color: '#8B9556' }}>
-            {t('common.appName')}
-          </span>
+          <span className="font-bold text-base tracking-tight text-[#768870]">Kisan Connect</span>
         </div>
-        <LanguageSelector />
+        <LanguageSelector variant="compact" />
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col items-center justify-center p-6">
-        <div className="w-full max-w-sm">
-          {/* Welcome Section */}
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold mb-2" style={{ color: '#2C2C2C' }}>
-              {t('auth.welcomeBack') || 'Welcome Back'}
-            </h1>
-            <p className="text-base" style={{ color: '#6B6B6B' }}>
-              {t('auth.loginSubtitle') || 'Login to continue to your account'}
-            </p>
+      <main className="flex-1 flex flex-col items-center justify-center p-6 px-4">
+        <div className="w-full max-w-sm space-y-8">
+          {/* Welcome Text */}
+          <div className="text-center space-y-2">
+            <h1 className="text-3xl font-extrabold text-[#2a3328] tracking-tight">Welcome Back</h1>
+            <p className="text-sm font-medium text-[#7a8478]">Please enter your details to login</p>
           </div>
 
           {/* Form Card */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm">
-            <div className="space-y-5">
-              <h2 className="text-xl font-semibold" style={{ color: '#2C2C2C' }}>
-                {t('auth.loginTitle')}
-              </h2>
-
-              {/* Email Input */}
+          <div className="kisan-card bg-white border-[#eeede6] shadow-xl shadow-[#768870]/5 p-8">
+            <div className="space-y-6">
+              {/* Email */}
               <div className="space-y-2">
-                <label className="text-sm font-medium" style={{ color: '#6B6B6B' }}>
-                  {t('auth.email') || 'Email'}
-                </label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-[#7a8478]/70">Email Address</label>
                 <div className="relative">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                    <Mail className="w-4 h-4" style={{ color: '#6B6B6B' }} />
-                  </div>
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7a8478]/40" />
                   <input
                     type="email"
                     value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value);
-                      setError('');
-                    }}
-                    placeholder={t('auth.emailPlaceholder') || 'Enter your email'}
-                    className="w-full pl-12 pr-4 py-3 rounded-xl text-base outline-none transition-all"
-                    style={{ 
-                      border: '2px solid #E8DCC8',
-                      backgroundColor: '#FAFAF8',
-                      color: '#2C2C2C'
-                    }}
-                    autoFocus
+                    onChange={(e) => { setEmail(e.target.value); setError(''); }}
+                    placeholder="name@example.com"
+                    className="w-full bg-[#fdfbf7] border border-[#eeede6] rounded-xl pl-10 pr-4 py-3 text-sm font-semibold text-[#2a3328] focus:outline-[#768870]/50 transition-all"
                   />
                 </div>
               </div>
 
-              {/* Password Input */}
+              {/* Password */}
               <div className="space-y-2">
-                <label className="text-sm font-medium" style={{ color: '#6B6B6B' }}>
-                  {t('auth.password') || 'Password'}
-                </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    setError('');
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && email && password) {
-                      handleLogin();
-                    }
-                  }}
-                  placeholder={t('auth.passwordPlaceholder') || 'Enter your password'}
-                  className="w-full px-4 py-3 rounded-xl text-base outline-none transition-all"
-                  style={{ 
-                    border: '2px solid #E8DCC8',
-                    backgroundColor: '#FAFAF8',
-                    color: '#2C2C2C'
-                  }}
-                />
+                <label className="text-[10px] font-black uppercase tracking-widest text-[#7a8478]/70">Password</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7a8478]/40" />
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => { setPassword(e.target.value); setError(''); }}
+                    placeholder="••••••••"
+                    className="w-full bg-[#fdfbf7] border border-[#eeede6] rounded-xl pl-10 pr-4 py-3 text-sm font-semibold text-[#2a3328] focus:outline-[#768870]/50 transition-all"
+                  />
+                </div>
               </div>
 
-              {/* Error */}
-              {error && (
-                <p className="text-sm text-red-600">{error}</p>
-              )}
+              {error && <p className="text-[10px] font-bold text-red-500 text-center">{error}</p>}
 
-              {/* Submit Button */}
+              {/* Login Button */}
               <button
                 onClick={handleLogin}
                 disabled={isLoading || !email || !password}
-                className="w-full py-4 text-lg font-semibold rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ 
-                  backgroundColor: (email && password) ? '#8B9556' : '#C4C9A8',
-                  color: 'white'
-                }}
+                className="w-full kisan-btn-primary py-4 rounded-xl shadow-lg shadow-[#768870]/20 active:scale-[0.98]"
               >
-                {isLoading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <>
-                    {t('auth.login') || 'Login'}
-                    <ArrowRight className="w-5 h-5" />
-                  </>
-                )}
+                {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <span>Sign In</span>}
               </button>
 
-              {/* Signup Link */}
-              <div className="text-center pt-4">
-                <p className="text-sm" style={{ color: '#6B6B6B' }}>
-                  {t('auth.noAccount') || "Don't have an account?"}{' '}
-                  <Link to="/signup" className="font-medium hover:underline" style={{ color: '#8B9556' }}>
-                    {t('auth.signupLink') || 'Sign up'}
-                  </Link>
+              <div className="text-center">
+                <p className="text-xs font-medium text-[#7a8478]">
+                  New here? <Link to="/signup" className="text-[#768870] font-black hover:underline ml-1">Create Account</Link>
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Help Link */}
-          <button className="flex items-center justify-center gap-2 mt-6 text-sm transition-colors mx-auto" style={{ color: '#6B6B6B' }}>
+          <button className="flex items-center justify-center gap-2 mx-auto text-[10px] font-black uppercase tracking-widest text-[#7a8478]/40 hover:text-[#768870] transition-colors">
             <HelpCircle className="w-4 h-4" />
-            {t('common.needHelp')}
+            Forgot Password?
           </button>
         </div>
       </main>

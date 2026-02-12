@@ -1,168 +1,167 @@
 @import "tailwindcss";
 
 @theme {
-  /* Farmer-Friendly Earthy Theme */
-  --color-background: oklch(96% 0.01 45);
-  --color-foreground: oklch(25% 0.02 30);
+  /* Kisan Connect Exact Theme from Screenshots */
+  --color-background: #fdfbf7;
+  --color-foreground: #2a3328;
 
-  --color-card: oklch(100% 0 0);
-  --color-card-foreground: oklch(25% 0.02 30);
+  --color-card: #ffffff;
+  --color-card-foreground: #2a3328;
 
-  --color-popover: oklch(100% 0 0);
-  --color-popover-foreground: oklch(25% 0.02 30);
+  /* Muted Sage / Olive Green */
+  --color-primary: #768870;
+  --color-primary-foreground: #ffffff;
 
-  /* Earthy Green Primary */
-  --color-primary: oklch(45% 0.15 120);
-  --color-primary-foreground: oklch(100% 0 0);
+  --color-secondary: #8d9c8a;
+  --color-muted: #f4f2eb;
+  --color-muted-foreground: #7a8478;
 
-  /* Warm Brown Secondary */
-  --color-secondary: oklch(50% 0.12 30);
-  --color-secondary-foreground: oklch(100% 0 0);
-
-  /* Soft Beige Muted */
-  --color-muted: oklch(92% 0.02 40);
-  --color-muted-foreground: oklch(45% 0.01 30);
-
-  /* Golden Harvest Accent */
-  --color-accent: oklch(55% 0.18 45);
-  --color-accent-foreground: oklch(25% 0.02 30);
-
-  /* Alert Red */
-  --color-destructive: oklch(55% 0.22 0);
-  --color-destructive-foreground: oklch(100% 0 0);
-
-  /* Success Green */
-  --color-success: oklch(50% 0.18 120);
-  --color-success-foreground: oklch(100% 0 0);
-
-  /* Warning Orange */
-  --color-warning: oklch(55% 0.20 35);
-  --color-warning-foreground: oklch(25% 0.02 30);
-
-  --color-border: oklch(88% 0.01 40);
-  --color-input: oklch(90% 0.01 40);
-  --color-ring: oklch(45% 0.15 120);
-
-  --radius: 0.75rem;
+  --color-border: #eeede6;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
 }
-
 
 * {
   border-color: var(--color-border);
 }
 
-html {
-  scroll-behavior: smooth;
-  -webkit-tap-highlight-color: transparent;
-}
-
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
-[lang="hi"] body,
-.font-hindi {
-  font-family: 'Noto Sans Devanagari', 'Inter', sans-serif;
-}
-
-[lang="te"] body,
-.font-telugu {
-  font-family: 'Noto Sans Telugu', 'Inter', sans-serif;
-}
-
-
-/* Custom Component Styles */
-.hero-bg {
-  background: oklch(94% 0.02 45);
-}
-
-.btn-primary {
-  background-color: var(--color-primary);
-  color: var(--color-primary-foreground);
-  font-weight: 600;
-  border-radius: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  transition: all 0.2s ease;
-}
-
-.btn-primary:hover {
-  opacity: 0.9;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.weather-card {
-  background-color: white;
-  border-radius: 0.75rem;
-  border: 1px solid var(--color-border);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.feature-card {
-  border-radius: 0.75rem;
+/* Global Navigation & Layout Utilities */
+.no-scroll-view {
+  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
-  background-color: white;
-  border: 1px solid var(--color-border);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transition: box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
 }
 
-.feature-card:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+.fit-content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
-.otp-input {
-  width: 3.5rem;
-  height: 4rem;
-  text-align: center;
-  font-size: 1.5rem;
-  font-weight: 700;
-  border-radius: 0.5rem;
-  border: 2px solid var(--color-border);
-  background-color: white;
-  outline: none;
+/* Consistent Page Header - Fixed Height 48px */
+.app-header {
+  height: 48px;
+  background: white;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  flex-shrink: 0;
+  z-index: 50;
+}
+
+/* Consistent Bottom Nav - Fixed Height 60px */
+.app-footer {
+  height: 60px;
+  background: white;
+  border-top: 1px solid var(--color-border);
+  flex-shrink: 0;
+  z-index: 50;
+}
+
+/* Global Card Component */
+.kisan-card {
+  background: white;
+  border-radius: 16px;
+  border: 1px solid #eeede6;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
   transition: all 0.2s ease;
 }
 
-.otp-input:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+.kisan-card-hover:hover {
+  border-color: rgba(118, 136, 112, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
 }
 
-.chat-bubble-user {
-  background-color: var(--color-primary);
-  color: var(--color-primary-foreground);
-  border-radius: 0.75rem;
-  border-bottom-right-radius: 0.25rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+/* Global Button Components */
+.kisan-btn-primary {
+  background-color: #768870;
+  color: white;
+  border-radius: 12px;
+  padding: 10px 20px;
+  font-weight: 700;
+  font-size: 14px;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
-.chat-bubble-bot {
-  background-color: var(--color-card);
-  color: var(--color-card-foreground);
-  border-radius: 0.75rem;
-  border-bottom-left-radius: 0.25rem;
-  border: 1px solid var(--color-border);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+.kisan-btn-primary:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
 }
 
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+.kisan-btn-primary:active {
+  transform: scale(0.98);
 }
 
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
+.kisan-btn-secondary {
+  background-color: #f4f2eb;
+  color: #7a8478;
+  border-radius: 12px;
+  padding: 10px 20px;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.2s;
 }
 
-.safe-bottom {
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+/* Global Typography */
+.kisan-h1 {
+  font-size: 24px;
+  font-weight: 800;
+  color: #2a3328;
+  letter-spacing: -0.02em;
 }
 
-.safe-top {
-  padding-top: env(safe-area-inset-top, 0px);
+.kisan-h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #2a3328;
+}
+
+.kisan-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #7a8478;
+  opacity: 0.8;
+}
+
+.kisan-text-small {
+  font-size: 12px;
+  color: #7a8478;
+}
+
+/* Feature Grid Utility */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  body {
+    overflow: auto;
+  }
+
+  .no-scroll-view {
+    height: auto;
+  }
 }

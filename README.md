@@ -1,4 +1,24 @@
 # 🌾 KisanMitra - Smart Agricultural Assistant---
+## 👩‍💻 My Contribution
+
+**Role:** Frontend Contributor
+
+As part of this collaborative project, I contributed to the development of the user interface and worked on improving the overall usability of the platform.
+
+### Key Contributions
+- Assisted in developing and structuring frontend components.
+- Implemented responsive user interface layouts for better accessibility across devices.
+- Contributed to integrating frontend components with backend APIs.
+- Worked on improving user interaction and interface design.
+
+### Technologies Used
+- React.js
+- Vite
+- Tailwind CSS
+- JavaScript (ES6)
+
+### Project Collaboration
+This project was developed as a team effort where different members worked on different modules of the system. My primary contributions focused on the frontend development and user interface implementation.
 
 A multilingual agricultural assistance application designed for farmers in India, providing AI-powered farming advice, disease detection, weather updates, and more.
 

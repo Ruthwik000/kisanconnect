@@ -1,0 +1,46 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow read/write access to authenticated users for their own data
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Allow authenticated users to read/write their own disease detections
+    match /disease_detections/{document} {
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+    
+    // Allow authenticated users to read/write their own chat conversations
+    match /chat_conversations/{document} {
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+    
+    // Allow all users (authenticated and unauthenticated) to read news data
+    // Temporarily allow public write for testing - CHANGE THIS IN PRODUCTION
+    match /news/{document} {
+      allow read, write: if true; // Temporary public access for testing
+    }
+    
+    // News collections - allow public read and write for testing
+    match /agricultural_news/{document} {
+      allow read, write: if true; // Temporary public access for testing
+    }
+    
+    match /market_prices/{document} {
+      allow read, write: if true; // Temporary public access for testing
+    }
+    
+    match /government_schemes/{document} {
+      allow read, write: if true; // Temporary public access for testing
+    }
+    
+    // Deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

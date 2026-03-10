@@ -48,7 +48,7 @@ class VoiceAgentService {
 
     // Event handlers
     this.recognition.onstart = () => {
-      console.log('Voice recognition started');
+      if (DEBUG) console.log('Voice recognition started');
       this.isListening = true;
       this.updateState('listening');
     };
@@ -125,7 +125,7 @@ class VoiceAgentService {
     };
 
     this.recognition.onend = () => {
-      console.log('Voice recognition ended');
+      if (DEBUG) console.log('Voice recognition ended');
       this.isListening = false;
       
       // Auto-restart if enabled and not processing/speaking
@@ -209,7 +209,7 @@ class VoiceAgentService {
       utterance.volume = options.volume || 1.0;
 
       utterance.onend = () => {
-        console.log('Speech finished');
+        if (DEBUG) console.log('Speech finished');
         this.isSpeaking = false;
         
         // Resume listening after speaking
@@ -226,7 +226,7 @@ class VoiceAgentService {
       };
 
       utterance.onerror = (event) => {
-        console.error('Speech synthesis error:', event);
+        if (DEBUG) console.error('Speech synthesis error:', event);
         this.isSpeaking = false;
         this.updateState('inactive');
         reject(event);

@@ -1,17 +1,6 @@
 const OPENWEATHER_API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY || 'd2ffedab20686979524c06aec69b3998';
 const OPENWEATHER_BASE_URL = 'https://api.openweathermap.org/data/2.5';
 
-// Mock weather data as fallback
-const getMockWeather = (city = 'Your Location') => ({
-  temperature: 28,
-  condition: 'clear',
-  humidity: 65,
-  wind: 12,
-  description: 'clear sky',
-  icon: '01d',
-  city: city,
-});
-
 export const fetchWeatherByCoords = async (lat, lon) => {
   try {
     const url = `${OPENWEATHER_BASE_URL}/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric`;
@@ -22,10 +11,7 @@ export const fetchWeatherByCoords = async (lat, lon) => {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       console.error('Weather API error:', response.status, errorData);
-      
-      // Return mock data if API fails
-      console.log('Using mock weather data due to API error');
-      return getMockWeather();
+      throw new Error(`Weather API error: ${response.status}`);
     }
 
     const data = await response.json();
@@ -41,9 +27,7 @@ export const fetchWeatherByCoords = async (lat, lon) => {
     };
   } catch (error) {
     console.error('Error fetching weather:', error);
-    // Return mock data instead of throwing
-    console.log('Using mock weather data due to network error');
-    return getMockWeather();
+    throw error;
   }
 };
 
@@ -57,10 +41,7 @@ export const fetchWeatherByCity = async (city) => {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       console.error('Weather API error:', response.status, errorData);
-      
-      // Return mock data if API fails
-      console.log('Using mock weather data due to API error');
-      return getMockWeather(city);
+      throw new Error(`Weather API error: ${response.status}`);
     }
 
     const data = await response.json();
@@ -76,17 +57,14 @@ export const fetchWeatherByCity = async (city) => {
     };
   } catch (error) {
     console.error('Error fetching weather:', error);
-    // Return mock data instead of throwing
-    console.log('Using mock weather data due to network error');
-    return getMockWeather(city);
+    throw error;
   }
 };
 
 export const getCurrentLocationWeather = async () => {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
-      console.log('Geolocation not supported, using mock data');
-      resolve(getMockWeather());
+      reject(new Error('Geolocation not supported'));
       return;
     }
 
@@ -99,19 +77,15 @@ export const getCurrentLocationWeather = async () => {
           );
           resolve(weather);
         } catch (error) {
-          console.log('Error getting location weather, using mock data');
-          resolve(getMockWeather());
+          reject(error);
         }
       },
       (error) => {
         console.error('Geolocation error:', error);
-        // Try Delhi as fallback, or use mock data if that fails too
+        // Try Delhi as fallback
         fetchWeatherByCity('Delhi')
           .then(resolve)
-          .catch(() => {
-            console.log('Fallback city failed, using mock data');
-            resolve(getMockWeather('Delhi'));
-          });
+          .catch(reject);
       },
       {
         timeout: 10000,

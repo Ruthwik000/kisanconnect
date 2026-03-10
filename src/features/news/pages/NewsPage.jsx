@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, TrendingUp, FileText, Banknote, Calendar, ExternalLink, Sprout, Bell, Settings, ArrowRight } from 'lucide-react';
+import { ArrowLeft, TrendingUp, FileText, Banknote, Calendar, ExternalLink, Sprout, Bell, Settings, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
 import { LanguageSelector } from '@/shared/ui/LanguageSelector';
-import { getNews } from '@/shared/api/mockApi';
+import { getAllNews, getNewsByCategory, refreshAllData } from '@/features/news/services/newsService';
 import BottomNav from '@/shared/components/navigation/BottomNav';
+import { toast } from 'sonner';
 
 const NewsPage = () => {
   const { t } = useTranslation();
@@ -15,6 +16,7 @@ const NewsPage = () => {
   const [activeTab, setActiveTab] = useState('schemes');
   const [news, setNews] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState(null);
 
   const tabs = [
     { id: 'schemes', label: t('news.schemes'), icon: FileText },
@@ -22,20 +24,53 @@ const NewsPage = () => {
     { id: 'prices', label: t('news.marketPrices'), icon: Banknote },
   ];
 
-  useEffect(() => {
-    const loadNews = async () => {
-      setIsLoading(true);
-      try {
-        const data = await getNews();
-        setNews(data);
-      } catch {
-        // Handle error
-      } finally {
-        setIsLoading(false);
+  const loadNews = async (category = null, forceRefresh = false) => {
+    setIsLoading(true);
+
+    try {
+      let data;
+      if (forceRefresh) {
+        data = await refreshAllData();
+      } else {
+        data = category ? await getNewsByCategory(category) : await getAllNews();
       }
-    };
+      
+      // Debug logging
+      console.log('Loaded news data:', data);
+      if (data.length > 0) {
+        console.log('Sample item structure:', data[0]);
+      }
+      
+      setNews(data);
+      setLastUpdated(new Date());
+      
+      if (data.length > 0) {
+        toast.success(`Loaded ${data.length} items successfully!`);
+      } else {
+        toast.info('No news available at the moment. We\'re working to get fresh content!');
+      }
+    } catch (error) {
+      console.error('Error loading news:', error);
+      toast.error('Failed to load news. Please try again.');
+      setNews([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadNews();
   }, []);
+
+  useEffect(() => {
+    // Load category-specific news when tab changes
+    const categoryMap = {
+      'schemes': 'scheme',
+      'news': 'news', 
+      'prices': 'price'
+    };
+    loadNews(categoryMap[activeTab]);
+  }, [activeTab]);
 
   const filteredNews = news.filter((item) => {
     if (activeTab === 'schemes') return item.category === 'scheme';
@@ -43,6 +78,19 @@ const NewsPage = () => {
     if (activeTab === 'prices') return item.category === 'price';
     return true;
   });
+
+  const handleRefresh = () => {
+    const categoryMap = {
+      'schemes': 'scheme',
+      'news': 'news', 
+      'prices': 'price'
+    };
+    loadNews(categoryMap[activeTab], true); // Force refresh
+  };
+
+  const openExternalLink = (url) => {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -71,6 +119,14 @@ const NewsPage = () => {
           </div>
         </div>
         <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
+          <button 
+            onClick={handleRefresh}
+            disabled={isLoading}
+            className="p-1.5 hover:bg-[#f4f2eb] rounded-full text-[#7a8478] transition-colors flex-shrink-0 disabled:opacity-50"
+            title="Refresh news"
+          >
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+          </button>
           <LanguageSelector variant="compact" />
           <button onClick={() => navigate('/news')} className="p-1.5 hover:bg-[#f4f2eb] rounded-full text-[#7a8478] flex-shrink-0"><Bell className="w-4 h-4" /></button>
           <button onClick={() => navigate('/profile')} className="p-1.5 hover:bg-[#f4f2eb] rounded-full text-[#7a8478] flex-shrink-0"><Settings className="w-4 h-4" /></button>
@@ -79,19 +135,26 @@ const NewsPage = () => {
 
       {/* Tabs Row (Fixed) */}
       <div className="bg-white border-b border-[#eeede6] px-6 py-2 flex gap-4 overflow-x-auto scrollbar-hide flex-shrink-0">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-6 py-2 rounded-xl transition-all font-bold text-xs whitespace-nowrap ${activeTab === tab.id
-              ? 'bg-[#768870] text-white shadow-md shadow-[#768870]/20'
-              : 'bg-[#f4f2eb] text-[#7a8478] border border-[#eeede6] hover:bg-[#eeede6]'
-              }`}
-          >
-            <tab.icon className="w-4 h-4" />
-            <span>{tab.label}</span>
-          </button>
-        ))}
+        <div className="flex gap-4 flex-1">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-6 py-2 rounded-xl transition-all font-bold text-xs whitespace-nowrap ${activeTab === tab.id
+                ? 'bg-[#768870] text-white shadow-md shadow-[#768870]/20'
+                : 'bg-[#f4f2eb] text-[#7a8478] border border-[#eeede6] hover:bg-[#eeede6]'
+                }`}
+            >
+              <tab.icon className="w-4 h-4" />
+              <span>{tab.label}</span>
+            </button>
+          ))}
+        </div>
+        {lastUpdated && (
+          <div className="flex items-center gap-2 text-[9px] text-[#7a8478]/60 font-medium whitespace-nowrap">
+            <span>Updated: {lastUpdated.toLocaleTimeString()}</span>
+          </div>
+        )}
       </div>
 
       {/* Main Content (Flex-1) */}
@@ -114,23 +177,42 @@ const NewsPage = () => {
                   <img src={item.imageUrl} alt="News" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   <div className="absolute top-3 left-3">
                     <span className="px-3 py-1 bg-white/90 backdrop-blur-sm border border-[#eeede6] rounded-lg text-[9px] font-black uppercase tracking-wider text-[#768870]">
-                      {item.category}
+                      {item.source || item.category}
                     </span>
                   </div>
                 </div>
                 <div className="p-5 flex-1 flex flex-col justify-between">
                   <div>
-                    <h3 className="font-bold text-base text-[#2a3328] leading-tight mb-2">{item.title[currentLanguage]}</h3>
-                    <p className="text-[11px] text-[#7a8478] line-clamp-2 font-medium leading-relaxed">{item.summary[currentLanguage]}</p>
+                    <h3 className="font-bold text-base text-[#2a3328] leading-tight mb-2">
+                      {item.title?.[currentLanguage] || item.title?.en || item.title || 'No title available'}
+                    </h3>
+                    <p className="text-[11px] text-[#7a8478] line-clamp-2 font-medium leading-relaxed">
+                      {item.summary?.[currentLanguage] || item.summary?.en || item.summary || 'No summary available'}
+                    </p>
+                    
+                    {/* Show additional info for price data */}
+                    {item.category === 'price' && item.change && (
+                      <div className="mt-2 flex items-center gap-2">
+                        <span className={`text-[10px] font-bold px-2 py-1 rounded ${
+                          item.change.startsWith('+') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                        }`}>
+                          {item.change}
+                        </span>
+                        <span className="text-[9px] text-[#7a8478] font-medium">vs yesterday</span>
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center justify-between mt-4 pt-4 border-t border-[#f4f2eb]">
                     <div className="flex items-center gap-2 text-[9px] font-bold text-[#7a8478]/50 uppercase tracking-widest">
                       <Calendar className="w-3.5 h-3.5" />
                       <span>{formatDate(item.date)}</span>
                     </div>
-                    <button className="flex items-center gap-1.5 text-[11px] font-black text-[#768870] uppercase tracking-tighter hover:opacity-80">
-                      Details
-                      <ArrowRight className="w-3.5 h-3.5" />
+                    <button 
+                      onClick={() => openExternalLink(item.url)}
+                      className="flex items-center gap-1.5 text-[11px] font-black text-[#768870] uppercase tracking-tighter hover:opacity-80"
+                    >
+                      View
+                      <ExternalLink className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>

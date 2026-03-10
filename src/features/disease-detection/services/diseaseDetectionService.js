@@ -3,6 +3,8 @@
  * Handles cotton plant disease detection using Gemini and Groq Vision APIs
  */
 
+import { saveDiseaseDetectionToFirestore } from './diseaseFirestoreService';
+
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
 const GEMINI_VISION_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent';
@@ -168,18 +170,70 @@ export const analyzePlantImageWithGroq = async (imageFile, language = 'en') => {
  * Analyze plant image - tries Gemini first, falls back to Groq
  * @param {File} imageFile - The image file to analyze
  * @param {string} language - Language code (en, hi, te)
+ * @param {string} userId - User ID for saving to history
  * @returns {Promise<Object>} - Analysis result
  */
-export const analyzePlantImage = async (imageFile, language = 'en') => {
+export const analyzePlantImage = async (imageFile, language = 'en', userId = null) => {
   try {
     // Try Gemini first
-    return await analyzePlantImageWithGemini(imageFile, language);
+    const result = await analyzePlantImageWithGemini(imageFile, language);
+    
+    // Save to Firestore if userId is provided
+    if (userId && result.success) {
+      try {
+        const imageBase64 = await fileToBase64(imageFile);
+        await saveDiseaseDetectionToFirestore({
+          userId,
+          disease: result.disease,
+          confidence: result.confidence,
+          isHealthy: result.isHealthy,
+          fullAnalysis: result.fullAnalysis,
+          method: result.method,
+          language,
+          imageData: imageBase64,
+          imageSize: imageFile.size,
+          imageName: imageFile.name,
+          createdAt: new Date()
+        });
+        console.log('Scan history saved to Firestore');
+      } catch (saveError) {
+        console.error('Failed to save scan history:', saveError);
+        // Don't throw error - analysis was successful
+      }
+    }
+    
+    return result;
   } catch (geminiError) {
     console.warn('Gemini failed, trying Groq:', geminiError.message);
     
     try {
       // Fallback to Groq
-      return await analyzePlantImageWithGroq(imageFile, language);
+      const result = await analyzePlantImageWithGroq(imageFile, language);
+      
+      // Save to Firestore if userId is provided
+      if (userId && result.success) {
+        try {
+          const imageBase64 = await fileToBase64(imageFile);
+          await saveDiseaseDetectionToFirestore({
+            userId,
+            disease: result.disease,
+            confidence: result.confidence,
+            isHealthy: result.isHealthy,
+            fullAnalysis: result.fullAnalysis,
+            method: result.method,
+            language,
+            imageData: imageBase64,
+            imageSize: imageFile.size,
+            imageName: imageFile.name,
+            createdAt: new Date()
+          });
+          console.log('Scan history saved to Firestore');
+        } catch (saveError) {
+          console.error('Failed to save scan history:', saveError);
+        }
+      }
+      
+      return result;
     } catch (groqError) {
       console.error('Both APIs failed:', { geminiError, groqError });
       throw new Error('Unable to analyze image. Please check your API keys and try again.');

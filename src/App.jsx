@@ -1,21 +1,18 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "@/shared/ui/toaster";
+import { Toaster as Sonner } from "@/shared/ui/sonner";
+import { TooltipProvider } from "@/shared/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
-import { LanguageProvider } from "@/contexts/LanguageContext";
-import LandingPage from "./pages/LandingPage";
-import LoginPage from "./pages/LoginPage";
-import SignupPage from "./pages/SignupPage";
-import OnboardingPage from "./pages/OnboardingPage";
-import Dashboard from "./pages/Dashboard";
-import ChatPage from "./pages/ChatPage";
-import DiseasePage from "./pages/DiseasePage";
-import NewsPage from "./pages/NewsPage";
-import ProfilePage from "./pages/ProfilePage";
-import NotFound from "./pages/NotFound";
-import FloatingChatbot from "./components/chat/FloatingChatbot";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/features/auth/contexts/AuthContext";
+import { LanguageProvider } from "@/shared/contexts/LanguageContext";
+import { LandingPage } from "@/features/dashboard";
+import { LoginPage, SignupPage } from "@/features/auth";
+import { OnboardingPage, Dashboard } from "@/features/dashboard";
+import { ChatPage } from "@/features/chat";
+import { DiseasePage } from "@/features/disease-detection";
+import { NewsPage } from "@/features/news";
+import { ProfilePage } from "@/features/profile";
+import NotFound from "@/shared/components/NotFound";
 
 const queryClient = new QueryClient();
 
@@ -39,7 +36,6 @@ const App = () => (
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
-            <FloatingChatbot />
           </BrowserRouter>
         </TooltipProvider>
       </LanguageProvider>

@@ -1,4 +1,4 @@
-# 🌾 KisanMitra - Smart Agricultural Assistant---
+# 🌾 KisanMitra - Smart Agricultural Assistant
 
 A multilingual agricultural assistance application designed for farmers in India, providing AI-powered farming advice, disease detection, weather updates, and more.
 
@@ -9,6 +9,10 @@ A multilingual agricultural assistance application designed for farmers in India
 ![Python](https://img.shields.io/badge/Python-3.9+-green)
 ![TensorFlow](https://img.shields.io/badge/TensorFlow-2.15-orange)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.109-teal)
+
+## 🚀 Quick Deploy
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FRuthwik000%2Fkisanconnect&env=VITE_FIREBASE_API_KEY,VITE_FIREBASE_AUTH_DOMAIN,VITE_FIREBASE_PROJECT_ID,VITE_FIREBASE_STORAGE_BUCKET,VITE_FIREBASE_MESSAGING_SENDER_ID,VITE_FIREBASE_APP_ID,VITE_FIREBASE_MEASUREMENT_ID,VITE_OPENWEATHER_API_KEY,VITE_GEMINI_API_KEY&envDescription=Required%20environment%20variables%20for%20Firebase%2C%20OpenWeather%2C%20and%20Gemini%20API&envLink=https%3A%2F%2Fgithub.com%2FRuthwik000%2Fkisanconnect%2Fblob%2Fmain%2F.env.example)
 
 ## ✨ Features
 

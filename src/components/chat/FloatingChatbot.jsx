@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send, Minus, Loader2, Mic, MicOff, Volume2 } from 'lucide-react';
+import { MessageCircle, X, Send, Minus, Loader2, Mic, MicOff, Volume2, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -7,126 +7,127 @@ import { sendChatMessage } from '@/services/aiChatbotService';
 
 const FloatingChatbot = () => {
     const { t } = useTranslation();
-    const { currentLanguage } = useLanguage();
-    // 1. State for opening/closing the chat window
+    const { currentLanguage: selectedLanguage } = useLanguage();
     const [isOpen, setIsOpen] = useState(false);
-
-    // 2. State for storing chat messages (starts with a greeting)
     const [messages, setMessages] = useState([
         {
+            id: 'greeting',
             role: 'assistant',
-            content: t('chatbot.greeting'),
+            text: t('chatbot.greeting'),
             suggestions: t('chatbot.suggestedQuestions', { returnObjects: true }),
             timestamp: new Date()
         }
     ]);
-
-    // 3. State for current text in the input box
     const [input, setInput] = useState('');
-
-    // 4. State for showing a loading spinner while waiting for AI
-    const [isLoading, setIsLoading] = useState(false);
-
-    // Ref to automatically scroll to the bottom when new messages arrive
     const messagesEndRef = useRef(null);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
-    // Scroll to bottom whenever messages are updated or chat is opened
     useEffect(() => {
         scrollToBottom();
     }, [messages, isOpen]);
 
     /**
-     * Sends the user's message to our Express backend
+     * Requirement 6: Web Speech API for the Listen Feature.
      */
-    const transliterateToHindi = async (text) => {
-        try {
-            const url = `https://inputtools.google.com/request?text=${encodeURIComponent(text)}&itc=hi-t-i0-und&num=1&cp=0&cs=1&ie=utf-8&oe=utf-8&app=test`;
-            const res = await fetch(url);
-            const data = await res.json();
-            if (data[0] === 'SUCCESS') {
-                return data[1][0][1][0];
-            }
-        } catch (e) {
-            console.error("Transliteration error:", e);
-        }
-        return text;
+    const speakText = (text, language) => {
+        if (!('speechSynthesis' in window)) return;
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        const langMap = { en: "en-US", hi: "hi-IN", te: "te-IN" };
+        utterance.lang = langMap[language] || "en-US";
+
+        // Pick best voice
+        const voices = window.speechSynthesis.getVoices();
+        const voice = voices.find(v => v.lang === utterance.lang);
+        if (voice) utterance.voice = voice;
+
+        window.speechSynthesis.speak(utterance);
     };
 
-    const getMockTranslation = (text, targetLang) => {
-        return `${text} (${targetLang})`;
+    /**
+     * Requirement 2, 5: Fetch AI response with silent background retry.
+     */
+    const fetchAIResponse = async (userText, assistantMsgId) => {
+        try {
+            const response = await sendChatMessage(userText, selectedLanguage);
+
+            if (response.isSuccess) {
+                setMessages((prev) =>
+                    prev.map((msg) =>
+                        msg.id === assistantMsgId
+                            ? {
+                                ...msg,
+                                text: response.reply,
+                                suggestions: response.suggestions,
+                                isRetrying: false,
+                                isError: false,
+                            }
+                            : msg
+                    )
+                );
+                speakText(response.reply, selectedLanguage);
+            } else if (response.isBusy) {
+                setMessages((prev) =>
+                    prev.map((msg) =>
+                        msg.id === assistantMsgId
+                            ? { ...msg, text: "Retrying...", isRetrying: true }
+                            : msg
+                    )
+                );
+                setTimeout(() => fetchAIResponse(userText, assistantMsgId), 5000);
+            }
+        } catch (error) {
+            console.error("[FloatingChatbot] Critical API Failure:", error);
+            setMessages((prev) =>
+                prev.map((msg) =>
+                    msg.id === assistantMsgId
+                        ? {
+                            ...msg,
+                            text: selectedLanguage === 'hi' ? "AI व्यस्त है। पृष्ठभूमि में पुन: प्रयास..." : "AI busy. Background retrying...",
+                            isRetrying: true,
+                            isError: true
+                        }
+                        : msg
+                )
+            );
+            setTimeout(() => fetchAIResponse(userText, assistantMsgId), 10000);
+        }
     };
 
     const handleSend = async (text) => {
         const messageText = text || input.trim();
-        if (!messageText || isLoading) return;
+        if (!messageText) return;
 
-        // Detect typed language
-        const detectLang = (t) => {
-            if (/[\u0900-\u097F]/.test(t)) return 'hi';
-            if (/[\u0C00-\u0C7F]/.test(t)) return 'te';
-            return 'en';
-        };
-        const detectedLanguage = detectLang(messageText);
-        let finalMessage = messageText;
-        let isTranslated = false;
-
-        setIsLoading(true); // Show loading early for transliteration
-
-        // Smart Hinglish -> Hindi Transliteration
-        if (currentLanguage === 'hi' && detectedLanguage === 'en') {
-            finalMessage = await transliterateToHindi(messageText);
-            isTranslated = true;
-        }
-        // Standard Language Translation
-        else if (detectedLanguage !== currentLanguage) {
-            finalMessage = getMockTranslation(messageText, currentLanguage);
-            isTranslated = true;
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
         }
 
-        // Add user's message to the chat list immediately
+        const assistantMsgId = `assistant_${Date.now()}`;
+
         const userMessage = {
+            id: `user_${Date.now()}`,
             role: 'user',
-            content: finalMessage,
-            isTranslated: isTranslated,
+            text: messageText,
             timestamp: new Date()
         };
-        setMessages(prev => [...prev, userMessage]);
-        setInput(''); // Clear input box
 
-        try {
-            const data = await sendChatMessage(finalMessage, currentLanguage);
-
-            // ADD AI RESPONSE: Update messages with what Gemini said
-            setMessages(prev => [...prev, {
+        setMessages(prev => [
+            ...prev,
+            userMessage,
+            {
+                id: assistantMsgId,
                 role: 'assistant',
-                content: data.reply,
-                suggestions: data.suggestions || [],
+                text: selectedLanguage === 'hi' ? "सोच रहा हूँ..." : "Thinking...",
+                isRetrying: true,
                 timestamp: new Date()
-            }]);
-        } catch (error) {
-            console.error('Chat error:', error);
-            setMessages(prev => [...prev, {
-                role: 'assistant',
-                content: 'Sorry, I encountered an error. Please ensure you have a valid Gemini API key in your .env file.',
-                timestamp: new Date()
-            }]);
-        } finally {
-            setIsLoading(false); // Hide loading spinner
-        }
-    };
+            }
+        ]);
 
-    const toggleVoiceInput = () => {
-        // Voice functionality removed as requested
-        console.log("Voice input disabled");
-    };
-
-    const speakMessage = (text) => {
-        // Speech synthesis removed as requested
-        console.log("Speech synthesis disabled");
+        setInput('');
+        fetchAIResponse(messageText, assistantMsgId);
     };
 
     const handleSuggestionClick = (suggestion) => {
@@ -135,7 +136,6 @@ const FloatingChatbot = () => {
 
     return (
         <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
-            {/* Chat Window */}
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
@@ -156,48 +156,46 @@ const FloatingChatbot = () => {
                                 </div>
                             </div>
                             <div className="flex gap-2">
-                                <button onClick={() => setIsOpen(false)} className="hover:bg-white/10 p-1 rounded-md transition-colors">
-                                    <Minus className="w-4 h-4" />
-                                </button>
-                                <button onClick={() => setIsOpen(false)} className="hover:bg-white/10 p-1 rounded-md transition-colors">
-                                    <X className="w-4 h-4" />
-                                </button>
+                                <button onClick={() => setIsOpen(false)} className="hover:bg-white/10 p-1 rounded-md transition-colors"><Minus className="w-4 h-4" /></button>
+                                <button onClick={() => setIsOpen(false)} className="hover:bg-white/10 p-1 rounded-md transition-colors"><X className="w-4 h-4" /></button>
                             </div>
                         </div>
 
-                        {/* Messages */}
+                        {/* Messages Area */}
                         <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/50">
-                            {messages.map((msg, idx) => (
-                                <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                    <div className={`max-w-[80%] p-3 rounded-2xl text-sm ${msg.role === 'user'
+                            {messages.map((message) => (
+                                <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                    <div className={`max-w-[80%] p-3 rounded-2xl text-sm ${message.role === 'user'
                                         ? 'bg-[#768870] text-white rounded-tr-none'
                                         : 'bg-white text-gray-800 shadow-sm border border-gray-100 rounded-tl-none'
                                         }`}>
-                                        {msg.role === 'user' && msg.isTranslated && (
-                                            <span className="block text-[10px] uppercase font-bold text-white/70 mb-1">
-                                                {t('chatbot.translated')}
-                                            </span>
-                                        )}
-                                        {msg.content}
+                                        <div className="flex flex-col">
+                                            {message.isRetrying ? (
+                                                <div className="flex items-center gap-2">
+                                                    {message.isError ? <RefreshCw className="w-3 h-3 text-amber-600 animate-spin" /> : <Loader2 className="w-3 h-3 text-[#768870] animate-spin" />}
+                                                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{message.text}</span>
+                                                </div>
+                                            ) : (
+                                                message.text
+                                            )}
+                                        </div>
 
-                                        {msg.role === 'assistant' && (
+                                        {!message.isRetrying && message.role === 'assistant' && (
                                             <button
-                                                onClick={() => speakMessage(msg.content)}
-                                                className="mt-2 flex items-center gap-1.5 text-[10px] font-bold text-[#7a8478] hover:text-[#768870] transition-colors uppercase tracking-wider"
+                                                onClick={() => speakText(message.text, selectedLanguage)}
+                                                disabled={!message.text || !('speechSynthesis' in window)}
+                                                title={!('speechSynthesis' in window) ? "Voice not supported" : ""}
+                                                className="mt-2 flex items-center gap-1.5 text-[10px] font-bold text-[#7a8478] hover:text-[#768870] transition-colors uppercase tracking-wider disabled:opacity-30 disabled:cursor-not-allowed"
                                             >
                                                 <Volume2 className="w-3.5 h-3.5" />
-                                                <span>Listen</span>
+                                                <span>LISTEN</span>
                                             </button>
                                         )}
 
-                                        {msg.role === 'assistant' && msg.suggestions && msg.suggestions.length > 0 && (
+                                        {!message.isRetrying && message.role === 'assistant' && message.suggestions && message.suggestions.length > 0 && (
                                             <div className="mt-3 flex flex-wrap gap-2">
-                                                {msg.suggestions.map((s, i) => (
-                                                    <button
-                                                        key={i}
-                                                        onClick={() => handleSuggestionClick(s)}
-                                                        className="px-3 py-1.5 text-[10px] bg-gray-100 hover:bg-[#768870] hover:text-white rounded-lg transition-colors border border-gray-200"
-                                                    >
+                                                {message.suggestions.map((s, i) => (
+                                                    <button key={i} onClick={() => handleSuggestionClick(s)} className="px-3 py-1.5 text-[10px] bg-gray-100 hover:bg-[#768870] hover:text-white rounded-lg transition-colors border border-gray-200">
                                                         {s}
                                                     </button>
                                                 ))}
@@ -206,24 +204,13 @@ const FloatingChatbot = () => {
                                     </div>
                                 </div>
                             ))}
-                            {isLoading && (
-                                <div className="flex justify-start">
-                                    <div className="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 shadow-sm">
-                                        <Loader2 className="w-4 h-4 text-[#768870] animate-spin" />
-                                    </div>
-                                </div>
-                            )}
                             <div ref={messagesEndRef} />
                         </div>
 
+                        {/* Input Area */}
                         <div className="p-4 bg-white border-t border-gray-100">
                             <div className="flex gap-2 items-center">
-                                <button
-                                    onClick={toggleVoiceInput}
-                                    className="p-2 rounded-full transition-all flex-shrink-0 bg-gray-100 text-gray-500 hover:bg-gray-200"
-                                >
-                                    <Mic className="w-4 h-4" />
-                                </button>
+                                <button className="p-2 rounded-full transition-all flex-shrink-0 bg-gray-100 text-gray-500 hover:bg-gray-200"><Mic className="w-4 h-4" /></button>
                                 <input
                                     type="text"
                                     value={input}
@@ -234,7 +221,7 @@ const FloatingChatbot = () => {
                                 />
                                 <button
                                     onClick={() => handleSend()}
-                                    disabled={!input.trim() || isLoading}
+                                    disabled={!input.trim()}
                                     className="p-2 bg-[#768870] text-white rounded-full disabled:opacity-50 hover:opacity-90 transition-all active:scale-90 flex-shrink-0"
                                 >
                                     <Send className="w-4 h-4" />
@@ -246,13 +233,7 @@ const FloatingChatbot = () => {
             </AnimatePresence>
 
             {/* Toggle Button */}
-            <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={() => setIsOpen(!isOpen)}
-                className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-colors ${isOpen ? 'bg-white text-[#768870]' : 'bg-[#768870] text-white'
-                    }`}
-            >
+            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.9 }} onClick={() => setIsOpen(!isOpen)} className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-colors ${isOpen ? 'bg-white text-[#768870]' : 'bg-[#768870] text-white'}`}>
                 {isOpen ? <X className="w-6 h-6" /> : <MessageCircle className="w-6 h-6" />}
             </motion.button>
         </div>

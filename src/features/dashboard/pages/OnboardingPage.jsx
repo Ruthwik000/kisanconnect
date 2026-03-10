@@ -117,8 +117,15 @@ const OnboardingPage = () => {
       if (result.success) {
         toast.success('Setup complete!');
         navigate('/dashboard');
+      } else {
+        toast.error(result.message || 'Failed to complete setup');
       }
-    } finally { setIsSaving(false); setIsLoading(false); }
+    } catch (error) {
+      console.error('Onboarding error:', error);
+      toast.error('Failed to complete setup');
+    } finally { 
+      setIsLoading(false); 
+    }
   };
 
   const steps = [

@@ -1,11 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, User, Phone, MapPin, Edit2, Save, X, Loader2, Sprout, Bell, Settings, LogOut, ChevronRight, Bookmark, Camera } from 'lucide-react';
+import { 
+  ArrowLeft, 
+  User, 
+  Phone, 
+  MapPin, 
+  Edit2, 
+  Save, 
+  X, 
+  Loader2, 
+  Sprout, 
+  Bell, 
+  Settings, 
+  LogOut, 
+  Camera,
+  Activity,
+  MessageCircle,
+  TrendingUp,
+  Calendar,
+  Shield,
+  AlertTriangle,
+  Bookmark,
+  BarChart3,
+  Scan,
+  CheckCircle2,
+  AlertCircle
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth/contexts/AuthContext';
 import { LanguageSelector } from '@/shared/ui/LanguageSelector';
 import BottomNav from '@/shared/components/navigation/BottomNav';
 import { toast } from 'sonner';
+import { getUserStats, getUserInsights, formatLastActivity } from '@/features/profile/services/profileService';
 
 const ProfilePage = () => {
   const { t } = useTranslation();
@@ -14,9 +40,12 @@ const ProfilePage = () => {
 
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
+  const [userStats, setUserStats] = useState(null);
+  const [insights, setInsights] = useState([]);
+  
   const [formData, setFormData] = useState({
     name: '',
-    farmerId: '',
     location: '',
     farmSize: '',
     crops: '',
@@ -27,7 +56,6 @@ const ProfilePage = () => {
     if (userProfile) {
       setFormData({
         name: userProfile.name || '',
-        farmerId: userProfile.farmerId || '',
         location: userProfile.location || '',
         farmSize: userProfile.farmSize || '',
         crops: userProfile.crops || '',
@@ -35,6 +63,28 @@ const ProfilePage = () => {
       });
     }
   }, [userProfile]);
+
+  // Load user statistics
+  useEffect(() => {
+    const loadUserStats = async () => {
+      if (!user?.uid) return;
+      
+      setIsLoadingStats(true);
+      try {
+        const stats = await getUserStats(user.uid);
+        setUserStats(stats);
+        
+        const userInsights = getUserInsights(stats);
+        setInsights(userInsights);
+      } catch (error) {
+        console.error('Error loading user stats:', error);
+      } finally {
+        setIsLoadingStats(false);
+      }
+    };
+
+    loadUserStats();
+  }, [user?.uid, userProfile]);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -60,7 +110,6 @@ const ProfilePage = () => {
   const handleCancel = () => {
     setFormData({
       name: userProfile?.name || '',
-      farmerId: userProfile?.farmerId || '',
       location: userProfile?.location || '',
       farmSize: userProfile?.farmSize || '',
       crops: userProfile?.crops || '',
@@ -129,12 +178,12 @@ const ProfilePage = () => {
               <p className="text-[10px] font-black uppercase tracking-widest text-[#7a8478]/50 mt-1">Farmer / {formData.location || 'India'}</p>
               <div className="mt-6 w-full pt-6 border-t border-[#f4f2eb] space-y-4">
                 <div className="flex items-center justify-between text-[11px] font-bold">
-                  <span className="text-[#7a8478]">Farmer ID</span>
-                  <span className="text-[#2a3328]">{formData.farmerId || 'N/A'}</span>
-                </div>
-                <div className="flex items-center justify-between text-[11px] font-bold">
                   <span className="text-[#7a8478]">Phone</span>
                   <span className="text-[#2a3328]">{formData.phone || 'N/A'}</span>
+                </div>
+                <div className="flex items-center justify-between text-[11px] font-bold">
+                  <span className="text-[#7a8478]">Last Active</span>
+                  <span className="text-[#2a3328]">{formatLastActivity(userStats?.lastActivity)}</span>
                 </div>
               </div>
             </div>
@@ -218,6 +267,91 @@ const ProfilePage = () => {
                 </button>
               ))}
             </div>
+
+            {/* Real-time Statistics */}
+            <div className="kisan-card bg-white border-[#eeede6]">
+              <h3 className="text-[10px] font-black uppercase tracking-widest text-[#7a8478]/50 mb-6">Activity Statistics</h3>
+              {isLoadingStats ? (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="animate-pulse">
+                      <div className="h-16 bg-[#f4f2eb] rounded-xl mb-2" />
+                      <div className="h-3 bg-[#f4f2eb] rounded w-3/4" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center p-4 bg-[#f4f2eb] rounded-xl">
+                    <div className="flex items-center justify-center w-12 h-12 bg-[#768870]/10 rounded-xl mx-auto mb-2">
+                      <Scan className="w-6 h-6 text-[#768870]" />
+                    </div>
+                    <div className="text-xl font-black text-[#2a3328]">{userStats?.totalScans || 0}</div>
+                    <div className="text-[9px] font-bold text-[#7a8478] uppercase tracking-wider">Total Scans</div>
+                  </div>
+                  
+                  <div className="text-center p-4 bg-[#f4f2eb] rounded-xl">
+                    <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-xl mx-auto mb-2">
+                      <CheckCircle2 className="w-6 h-6 text-green-600" />
+                    </div>
+                    <div className="text-xl font-black text-[#2a3328]">{userStats?.healthyPlants || 0}</div>
+                    <div className="text-[9px] font-bold text-[#7a8478] uppercase tracking-wider">Healthy Plants</div>
+                  </div>
+                  
+                  <div className="text-center p-4 bg-[#f4f2eb] rounded-xl">
+                    <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-xl mx-auto mb-2">
+                      <MessageCircle className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <div className="text-xl font-black text-[#2a3328]">{userStats?.totalConversations || 0}</div>
+                    <div className="text-[9px] font-bold text-[#7a8478] uppercase tracking-wider">AI Chats</div>
+                  </div>
+                  
+                  <div className="text-center p-4 bg-[#f4f2eb] rounded-xl">
+                    <div className="flex items-center justify-center w-12 h-12 bg-orange-100 rounded-xl mx-auto mb-2">
+                      <Activity className="w-6 h-6 text-orange-600" />
+                    </div>
+                    <div className="text-xl font-black text-[#2a3328]">{userStats?.thisMonthScans || 0}</div>
+                    <div className="text-[9px] font-bold text-[#7a8478] uppercase tracking-wider">This Month</div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* User Insights */}
+            {insights.length > 0 && (
+              <div className="kisan-card bg-white border-[#eeede6]">
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-[#7a8478]/50 mb-6">Farming Insights</h3>
+                <div className="space-y-3">
+                  {insights.map((insight, index) => (
+                    <div key={index} className={`p-4 rounded-xl border-l-4 ${
+                      insight.type === 'positive' ? 'bg-green-50 border-green-400' :
+                      insight.type === 'warning' ? 'bg-orange-50 border-orange-400' :
+                      'bg-blue-50 border-blue-400'
+                    }`}>
+                      <div className="flex items-start gap-3">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                          insight.type === 'positive' ? 'bg-green-100' :
+                          insight.type === 'warning' ? 'bg-orange-100' :
+                          'bg-blue-100'
+                        }`}>
+                          {insight.type === 'positive' ? (
+                            <CheckCircle2 className="w-4 h-4 text-green-600" />
+                          ) : insight.type === 'warning' ? (
+                            <AlertCircle className="w-4 h-4 text-orange-600" />
+                          ) : (
+                            <BarChart3 className="w-4 h-4 text-blue-600" />
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="text-sm font-bold text-[#2a3328] mb-1">{insight.title}</h4>
+                          <p className="text-xs text-[#7a8478] leading-relaxed">{insight.message}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </main>

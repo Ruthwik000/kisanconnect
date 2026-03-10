@@ -41,7 +41,7 @@ const ChatPage = () => {
     setProcessing
   } = useVoiceAgent({
     onTranscript: (transcript, confidence) => {
-      console.log('Received transcript:', transcript, 'Confidence:', confidence);
+      // Transcript received, update input
       setInput(transcript);
       
       // In voice mode, automatically send after receiving transcript

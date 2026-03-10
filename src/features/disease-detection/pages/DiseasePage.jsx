@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
+import { useAuth } from '@/features/auth/contexts/AuthContext';
 import { LanguageSelector } from '@/shared/ui/LanguageSelector';
 import { AnalyzingAnimation } from '@/shared/ui/LoadingSpinner';
 import { analyzePlantImage } from '@/features/disease-detection/services/diseaseDetectionService';
@@ -27,6 +28,7 @@ const DiseasePage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { currentLanguage } = useLanguage();
+  const { user } = useAuth();
 
   const [selectedImage, setSelectedImage] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -87,7 +89,7 @@ const DiseasePage = () => {
     setResult(null);
 
     try {
-      const analysisResult = await analyzePlantImage(file, currentLanguage);
+      const analysisResult = await analyzePlantImage(file, currentLanguage, user?.uid);
       
       if (analysisResult.success) {
         setResult({

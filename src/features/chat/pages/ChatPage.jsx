@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Send, Mic, MicOff, Volume2, MessageCircle, Sprout, Settings, Bell } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, Send, Mic, MicOff, Volume2, MessageCircle, Sprout, Settings, Bell, History } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
+import { useAuth } from '@/features/auth/contexts/AuthContext';
 import { LanguageSelector } from '@/shared/ui/LanguageSelector';
 import { LoadingDots } from '@/shared/ui/LoadingSpinner';
 import { sendChatMessage } from '@/features/chat/services/chatService';
+import { saveConversationToFirestore, updateConversationInFirestore, getConversationById } from '@/features/chat/services/chatFirestoreService';
 import BottomNav from '@/shared/components/navigation/BottomNav';
 import { toast } from 'sonner';
 import { useVoiceAgent } from '@/shared/hooks/useVoiceAgent';
@@ -13,7 +15,9 @@ import { useVoiceAgent } from '@/shared/hooks/useVoiceAgent';
 const ChatPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const { currentLanguage } = useLanguage();
+  const { user } = useAuth();
 
   const [messages, setMessages] = useState([
     {
@@ -27,6 +31,8 @@ const ChatPage = () => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [voiceMode, setVoiceMode] = useState(false);
+  const [currentConversationId, setCurrentConversationId] = useState(null);
+  const [isLoadingConversation, setIsLoadingConversation] = useState(false);
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -79,6 +85,37 @@ const ChatPage = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Load existing conversation if conversationId is provided in state
+  useEffect(() => {
+    const loadExistingConversation = async () => {
+      const conversationId = location.state?.conversationId;
+      if (conversationId && user?.uid) {
+        setIsLoadingConversation(true);
+        try {
+          const conversation = await getConversationById(conversationId);
+          if (conversation && conversation.userId === user.uid) {
+            setCurrentConversationId(conversationId);
+            setMessages(conversation.messages || []);
+            console.log('Loaded existing conversation:', conversationId);
+            toast.success('Conversation loaded successfully');
+            
+            // Clear the state to prevent reloading on refresh
+            navigate(location.pathname, { replace: true });
+          } else {
+            toast.error('Conversation not found or access denied');
+          }
+        } catch (error) {
+          console.error('Error loading conversation:', error);
+          toast.error('Failed to load conversation');
+        } finally {
+          setIsLoadingConversation(false);
+        }
+      }
+    };
+
+    loadExistingConversation();
+  }, [location.state?.conversationId, user?.uid, navigate, location.pathname]);
+
   const handleSend = async (text) => {
     const messageText = text || input.trim();
     if (!messageText || isLoading) return;
@@ -112,7 +149,35 @@ const ChatPage = () => {
         suggestions: response.suggestions,
       };
 
-      setMessages((prev) => [...prev, botMessage]);
+      const updatedMessages = [...messages, userMessage, botMessage];
+      setMessages(updatedMessages);
+
+      // Save conversation to Firestore (only if user is logged in)
+      if (user?.uid) {
+        try {
+          // Filter out the greeting message for saving
+          const messagesToSave = updatedMessages.filter(msg => msg.id !== 'greeting');
+          
+          if (currentConversationId) {
+            // Update existing conversation
+            await updateConversationInFirestore(currentConversationId, [userMessage, botMessage]);
+          } else {
+            // Create new conversation
+            const result = await saveConversationToFirestore(
+              user.uid, 
+              messagesToSave, 
+              currentLanguage,
+              messageText.substring(0, 50) // Use first 50 chars as topic
+            );
+            if (result.success) {
+              setCurrentConversationId(result.conversationId);
+            }
+          }
+        } catch (error) {
+          console.error('Error saving conversation:', error);
+          // Don't show error to user as chat still works
+        }
+      }
 
       // In voice mode, automatically speak the response
       if (voiceMode) {
@@ -265,6 +330,13 @@ const ChatPage = () => {
           </div>
         </div>
         <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
+          <button 
+            onClick={() => navigate('/chat/history')} 
+            className="p-1.5 hover:bg-[#f4f2eb] rounded-full text-[#7a8478] flex-shrink-0"
+            title="Chat History"
+          >
+            <History className="w-4 h-4" />
+          </button>
           <LanguageSelector variant="compact" />
           <button onClick={() => navigate('/news')} className="p-1.5 hover:bg-[#f4f2eb] rounded-full text-[#7a8478] flex-shrink-0"><Bell className="w-4 h-4" /></button>
           <button onClick={() => navigate('/profile')} className="p-1.5 hover:bg-[#f4f2eb] rounded-full text-[#7a8478] flex-shrink-0"><Settings className="w-4 h-4" /></button>
@@ -273,6 +345,16 @@ const ChatPage = () => {
 
       {/* 2. Main Chat Area (Flex-1) */}
       <main className="flex-1 flex flex-col min-h-0 relative max-w-[1200px] mx-auto w-full">
+        {/* Loading Conversation Indicator */}
+        {isLoadingConversation && (
+          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 animate-fade-in">
+            <div className="inline-flex items-center gap-3 bg-[#768870] text-white px-6 py-3 rounded-full text-sm font-bold shadow-2xl">
+              <LoadingDots />
+              <span>Loading conversation...</span>
+            </div>
+          </div>
+        )}
+
         {/* Voice Mode Indicator */}
         {voiceMode && (
           <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 animate-fade-in">

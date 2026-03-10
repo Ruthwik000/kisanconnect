@@ -12,6 +12,8 @@ import { ChatPage } from "@/features/chat";
 import { DiseasePage } from "@/features/disease-detection";
 import { NewsPage } from "@/features/news";
 import { ProfilePage } from "@/features/profile";
+import ScanHistoryPage from "@/features/disease-detection/pages/ScanHistoryPage";
+import ChatHistoryPage from "@/features/chat/pages/ChatHistoryPage";
 import NotFound from "@/shared/components/NotFound";
 import ProtectedRoute from "@/shared/components/ProtectedRoute";
 
@@ -50,9 +52,19 @@ const App = () => {
                     <ChatPage />
                   </ProtectedRoute>
                 } />
+                <Route path="/chat/history" element={
+                  <ProtectedRoute requireOnboarding={true}>
+                    <ChatHistoryPage />
+                  </ProtectedRoute>
+                } />
                 <Route path="/disease" element={
                   <ProtectedRoute requireOnboarding={true}>
                     <DiseasePage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/disease/history" element={
+                  <ProtectedRoute requireOnboarding={true}>
+                    <ScanHistoryPage />
                   </ProtectedRoute>
                 } />
                 <Route path="/news" element={

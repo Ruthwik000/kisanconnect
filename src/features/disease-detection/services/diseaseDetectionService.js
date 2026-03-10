@@ -182,8 +182,7 @@ export const analyzePlantImage = async (imageFile, language = 'en', userId = nul
     if (userId && result.success) {
       try {
         const imageBase64 = await fileToBase64(imageFile);
-        await saveDiseaseDetectionToFirestore({
-          userId,
+        await saveDiseaseDetectionToFirestore(userId, {
           disease: result.disease,
           confidence: result.confidence,
           isHealthy: result.isHealthy,
@@ -192,8 +191,7 @@ export const analyzePlantImage = async (imageFile, language = 'en', userId = nul
           language,
           imageData: imageBase64,
           imageSize: imageFile.size,
-          imageName: imageFile.name,
-          createdAt: new Date()
+          imageName: imageFile.name
         });
         console.log('Scan history saved to Firestore');
       } catch (saveError) {
@@ -214,8 +212,7 @@ export const analyzePlantImage = async (imageFile, language = 'en', userId = nul
       if (userId && result.success) {
         try {
           const imageBase64 = await fileToBase64(imageFile);
-          await saveDiseaseDetectionToFirestore({
-            userId,
+          await saveDiseaseDetectionToFirestore(userId, {
             disease: result.disease,
             confidence: result.confidence,
             isHealthy: result.isHealthy,
@@ -224,8 +221,7 @@ export const analyzePlantImage = async (imageFile, language = 'en', userId = nul
             language,
             imageData: imageBase64,
             imageSize: imageFile.size,
-            imageName: imageFile.name,
-            createdAt: new Date()
+            imageName: imageFile.name
           });
           console.log('Scan history saved to Firestore');
         } catch (saveError) {

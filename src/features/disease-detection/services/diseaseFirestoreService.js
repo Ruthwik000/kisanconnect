@@ -29,15 +29,19 @@ export const saveDiseaseDetectionToFirestore = async (userId, detectionData) => 
     
     const detectionRecord = {
       userId,
-      imageUrl: detectionData.imageUrl,
+      imageData: detectionData.imageData || null,
+      imageUrl: detectionData.imageUrl || null,
       disease: detectionData.disease,
       confidence: detectionData.confidence || 0,
       isHealthy: detectionData.isHealthy || false,
       severity: detectionData.severity || null,
+      fullAnalysis: detectionData.fullAnalysis || '',
       recommendations: detectionData.recommendations || '',
       method: detectionData.method || 'gemini_vision',
       language: detectionData.language || 'en',
       location: detectionData.location || null,
+      imageSize: detectionData.imageSize || null,
+      imageName: detectionData.imageName || null,
       createdAt: serverTimestamp()
     };
 
@@ -136,6 +140,24 @@ export const getUserDiseaseStats = async (userId) => {
       commonDiseases: {},
       recentDetections: [],
       detectionsByMonth: {}
+    };
+  }
+};
+
+/**
+ * Delete a disease detection record
+ */
+export const deleteDiseaseDetectionFromFirestore = async (detectionId) => {
+  try {
+    console.log(`Deleting disease detection ${detectionId}`);
+    await deleteDoc(doc(db, COLLECTION_NAME, detectionId));
+    console.log(`Disease detection ${detectionId} deleted successfully`);
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting disease detection:', error);
+    return {
+      success: false,
+      message: error.message
     };
   }
 };

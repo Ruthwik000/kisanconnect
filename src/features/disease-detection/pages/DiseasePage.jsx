@@ -14,7 +14,8 @@ import {
   ArrowRight,
   Sprout,
   Settings,
-  Bell
+  Bell,
+  History
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/shared/contexts/LanguageContext';
@@ -169,6 +170,13 @@ const DiseasePage = () => {
           </div>
         </div>
         <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
+          <button 
+            onClick={() => navigate('/disease/history')} 
+            className="p-1.5 hover:bg-[#f4f2eb] rounded-full text-[#7a8478] flex-shrink-0"
+            title="Scan History"
+          >
+            <History className="w-4 h-4" />
+          </button>
           <LanguageSelector variant="compact" />
           <button onClick={() => navigate('/news')} className="p-1.5 hover:bg-[#f4f2eb] rounded-full text-[#7a8478] flex-shrink-0"><Bell className="w-4 h-4" /></button>
           <button onClick={() => navigate('/profile')} className="p-1.5 hover:bg-[#f4f2eb] rounded-full text-[#7a8478] flex-shrink-0"><Settings className="w-4 h-4" /></button>

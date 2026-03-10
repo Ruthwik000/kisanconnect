@@ -192,7 +192,7 @@ export const subscribeToConversation = (conversationId, callback) => {
 /**
  * Delete a conversation
  */
-export const deleteConversation = async (conversationId) => {
+export const deleteConversationFromFirestore = async (conversationId) => {
   try {
     await deleteDoc(doc(db, COLLECTION_NAME, conversationId));
     console.log(`Conversation ${conversationId} deleted successfully`);

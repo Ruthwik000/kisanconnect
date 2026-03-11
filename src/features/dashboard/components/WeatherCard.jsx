@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Sun, Droplets, Wind, Cloud, CloudRain, CloudSnow } from 'lucide-react';
 import { getWeatherData } from '@/features/dashboard/services/dashboardService';
 
 const WeatherCard = ({ location = 'Hyderabad' }) => {
   const [weather, setWeather] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { t } = useTranslation();
 
   useEffect(() => {
     const fetchWeather = async () => {
@@ -46,7 +48,7 @@ const WeatherCard = ({ location = 'Hyderabad' }) => {
   if (isLoading) {
     return (
       <div className="kisan-card p-5 flex-1 flex flex-col justify-center items-center border-[#eeede6] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.02)] min-h-0">
-        <div className="animate-pulse text-[#7a8478] text-xs">Loading weather...</div>
+        <div className="animate-pulse text-[#7a8478] text-xs">{t('weather.loadingWeather', 'Loading weather...')}</div>
       </div>
     );
   }
@@ -54,7 +56,7 @@ const WeatherCard = ({ location = 'Hyderabad' }) => {
   return (
     <div className="kisan-card p-5 flex-1 flex flex-col justify-between border-[#eeede6] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.02)] min-h-0">
       <div className="flex justify-between items-start">
-        <h3 className="text-[10px] font-bold text-[#7a8478] uppercase tracking-widest">Local Weather</h3>
+        <h3 className="text-[10px] font-bold text-[#7a8478] uppercase tracking-widest">{t('weather.localWeather', 'Local Weather')}</h3>
         {getWeatherIcon(weather?.icon)}
       </div>
 
@@ -67,21 +69,21 @@ const WeatherCard = ({ location = 'Hyderabad' }) => {
         <div className="flex items-center justify-between text-[10px]">
           <div className="flex items-center gap-2 text-[#7a8478]">
             <Droplets className="w-3 h-3" />
-            <span className="font-semibold">Humidity</span>
+            <span className="font-semibold">{t('weather.humidity', 'Humidity')}</span>
           </div>
           <span className="font-bold text-[#2a3328]">{weather?.humidity}%</span>
         </div>
         <div className="flex items-center justify-between text-[10px]">
           <div className="flex items-center gap-2 text-[#7a8478]">
             <Wind className="w-3 h-3" />
-            <span className="font-semibold">Wind Speed</span>
+            <span className="font-semibold">{t('weather.windSpeed', 'Wind Speed')}</span>
           </div>
           <span className="font-bold text-[#2a3328]">{weather?.windSpeed} km/h</span>
         </div>
         <div className="flex items-center justify-between text-[10px]">
           <div className="flex items-center gap-2 text-[#7a8478]">
             <Cloud className="w-3 h-3" />
-            <span className="font-semibold">Cloud Cover</span>
+            <span className="font-semibold">{t('weather.cloudCover', 'Cloud Cover')}</span>
           </div>
           <span className="font-bold text-[#2a3328]">{weather?.cloudCover}%</span>
         </div>

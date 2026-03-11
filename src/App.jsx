@@ -16,6 +16,9 @@ import ScanHistoryPage from "@/features/disease-detection/pages/ScanHistoryPage"
 import ChatHistoryPage from "@/features/chat/pages/ChatHistoryPage";
 import NotFound from "@/shared/components/NotFound";
 import ProtectedRoute from "@/shared/components/ProtectedRoute";
+import { PWAInstallPrompt } from "@/shared/components/PWAInstallPrompt";
+import { PWAUpdateNotification } from "@/shared/components/PWAUpdateNotification";
+import { OfflineNotification } from "@/shared/components/OfflineNotification";
 
 const queryClient = new QueryClient();
 
@@ -27,6 +30,9 @@ const App = () => {
           <TooltipProvider>
             <Toaster />
             <Sonner />
+            <PWAInstallPrompt />
+            <PWAUpdateNotification />
+            <OfflineNotification />
             <BrowserRouter>
               <Routes>
                 {/* Public routes */}

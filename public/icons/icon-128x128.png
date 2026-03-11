@@ -1,0 +1,27 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="512" height="512" rx="64" fill="#768870"/>
+  
+  <!-- Plant/Leaf Icon -->
+  <g transform="translate(128, 128)">
+    <!-- Main leaf -->
+    <path d="M128 32C128 32 200 60 200 128C200 196 128 224 128 224C128 224 56 196 56 128C56 60 128 32 128 32Z" fill="#ffffff" opacity="0.9"/>
+    
+    <!-- Leaf veins -->
+    <path d="M128 48L128 208" stroke="#768870" stroke-width="3" opacity="0.6"/>
+    <path d="M128 80C140 76 152 80 160 88" stroke="#768870" stroke-width="2" opacity="0.4"/>
+    <path d="M128 112C140 108 152 112 160 120" stroke="#768870" stroke-width="2" opacity="0.4"/>
+    <path d="M128 144C140 140 152 144 160 152" stroke="#768870" stroke-width="2" opacity="0.4"/>
+    <path d="M128 80C116 76 104 80 96 88" stroke="#768870" stroke-width="2" opacity="0.4"/>
+    <path d="M128 112C116 108 104 112 96 120" stroke="#768870" stroke-width="2" opacity="0.4"/>
+    <path d="M128 144C116 140 104 144 96 152" stroke="#768870" stroke-width="2" opacity="0.4"/>
+    
+    <!-- Secondary smaller leaf -->
+    <path d="M96 160C96 160 136 176 136 208C136 240 96 256 96 256C96 256 56 240 56 208C56 176 96 160 96 160Z" fill="#ffffff" opacity="0.7"/>
+    <path d="M96 168L96 248" stroke="#768870" stroke-width="2" opacity="0.5"/>
+  </g>
+  
+  <!-- App name text -->
+  <text x="256" y="420" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="36" font-weight="bold">Kisan</text>
+  <text x="256" y="460" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="24" opacity="0.8">Connect</text>
+</svg>
